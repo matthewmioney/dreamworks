@@ -7,6 +7,7 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
 GUILD_ID = 1211555736283516938
+ADMIN_ROLE_ID = 1211555736304357429
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -73,18 +74,12 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
 
         embed = discord.Embed(
             title="📋 LOA Request",
-            color=discord.Color.blue()
+            color=discord.Color.red()
         )
 
         embed.add_field(
-            name="User",
+            name="Employee",
             value=interaction.user.mention,
-            inline=False
-        )
-
-        embed.add_field(
-            name="Reason",
-            value=self.reason.value,
             inline=False
         )
 
@@ -106,9 +101,23 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
             inline=True
         )
 
+        embed.add_field(
+            name="Reason",
+            value=self.reason.value,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Status",
+            value="LOA Submitted",
+            inline=False
+        )
+
         embed.set_footer(
             text=f"Submitted by {interaction.user}"
         )
+
+        admin_role = f"<@&{ADMIN_ROLE_ID}>"
 
         await interaction.response.send_message(
             "✅ LOA submitted successfully.",
@@ -116,7 +125,7 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
         )
 
         await interaction.channel.send(
-            content=interaction.user.mention,
+            content=f"{interaction.user.mention} {admin_role}",
             embed=embed
         )
 
