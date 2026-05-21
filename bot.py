@@ -17,40 +17,84 @@ bot = commands.Bot(
     intents=intents
 )
 
+# MONTH OPTIONS
+months = [
+    discord.SelectOption(label=month)
+    for month in [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    ]
+]
 
-class LOAModal(discord.ui.Modal, title="LOA Request"):
 
-    rank = discord.ui.TextInput(
-        label="Rank",
-        placeholder="Enter your rank",
-        required=True,
-        max_length=50
+class StartMonthSelect(discord.ui.Select):
+
+    def __init__(self):
+        super().__init__(
+            placeholder="Select Start Month",
+            options=months
+        )
+
+    async def callback(self, interaction):
+        self.view.start_month = self.values[0]
+
+        await interaction.response.defer()
+
+
+class EndMonthSelect(discord.ui.Select):
+
+    def __init__(self):
+        super().__init__(
+            placeholder="Select End Month",
+            options=months
+        )
+
+    async def callback(self, interaction):
+        self.view.end_month = self.values[0]
+
+        await interaction.response.defer()
+
+
+class LOAView(discord.ui.View):
+
+    def __init__(self):
+
+        super().__init__(timeout=300)
+
+        self.start_month = None
+        self.end_month = None
+
+        self.add_item(StartMonthSelect())
+        self.add_item(EndMonthSelect())
+
+    @discord.ui.button(
+        label="Submit LOA",
+        style=discord.ButtonStyle.green
     )
-
-    reason = discord.ui.TextInput(
-        label="Reason",
-        style=discord.TextStyle.paragraph,
-        placeholder="Reason for LOA",
-        required=True,
-        max_length=500
-    )
-
-    start_date = discord.ui.TextInput(
-        label="Start Date",
-        placeholder="MM/DD/YYYY",
-        required=True
-    )
-
-    end_date = discord.ui.TextInput(
-        label="End Date",
-        placeholder="MM/DD/YYYY",
-        required=True
-    )
-
-    async def on_submit(
+    async def submit_button(
         self,
-        interaction: discord.Interaction
+        interaction: discord.Interaction,
+        button: discord.ui.Button
     ):
+
+        if not self.start_month or not self.end_month:
+
+            await interaction.response.send_message(
+                "❌ Select both months first.",
+                ephemeral=True
+            )
+
+            return
 
         embed = discord.Embed(
             title="📋 LOA Request",
@@ -58,32 +102,20 @@ class LOAModal(discord.ui.Modal, title="LOA Request"):
         )
 
         embed.add_field(
-            name="Username",
-            value=interaction.user.name,
+            name="User",
+            value=interaction.user.mention,
             inline=False
         )
 
         embed.add_field(
-            name="Rank",
-            value=self.rank.value,
-            inline=False
-        )
-
-        embed.add_field(
-            name="Reason",
-            value=self.reason.value,
-            inline=False
-        )
-
-        embed.add_field(
-            name="Start Date",
-            value=self.start_date.value,
+            name="Start Month",
+            value=self.start_month,
             inline=True
         )
 
         embed.add_field(
-            name="End Date",
-            value=self.end_date.value,
+            name="End Month",
+            value=self.end_month,
             inline=True
         )
 
@@ -97,6 +129,7 @@ class LOAModal(discord.ui.Modal, title="LOA Request"):
         )
 
         await interaction.channel.send(
+            content=interaction.user.mention,
             embed=embed
         )
 
@@ -133,8 +166,16 @@ async def loa(
     interaction: discord.Interaction
 ):
 
-    await interaction.response.send_modal(
-        LOAModal()
+    embed = discord.Embed(
+        title="📋 LOA Request Form",
+        description="Select your LOA months below.",
+        color=discord.Color.blue()
+    )
+
+    await interaction.response.send_message(
+        embed=embed,
+        view=LOAView(),
+        ephemeral=True
     )
 
 
