@@ -66,13 +66,17 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
         interaction: discord.Interaction
     ):
 
+        await interaction.response.defer(
+            ephemeral=True
+        )
+
         view = interaction.client.active_views.get(
             interaction.user.id
         )
 
         if not view:
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ LOA session expired.",
                 ephemeral=True
             )
@@ -145,7 +149,7 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
 
         active_loas[interaction.user.id] = msg.id
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "✅ LOA submitted successfully.",
             ephemeral=True
         )
