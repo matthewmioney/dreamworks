@@ -17,7 +17,6 @@ bot = commands.Bot(
     intents=intents
 )
 
-# MONTH OPTIONS
 months = [
     discord.SelectOption(label=month)
     for month in [
@@ -37,15 +36,102 @@ months = [
 ]
 
 
+class LOAModal(discord.ui.Modal, title="LOA Details"):
+
+    reason = discord.ui.TextInput(
+        label="Reason",
+        style=discord.TextStyle.paragraph,
+        placeholder="Reason for LOA",
+        required=True,
+        max_length=500
+    )
+
+    end_day = discord.ui.TextInput(
+        label="End Day",
+        placeholder="Example: 21",
+        required=True,
+        max_length=2
+    )
+
+    async def on_submit(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        view = interaction.client.active_views.get(
+            interaction.user.id
+        )
+
+        if not view:
+
+            await interaction.response.send_message(
+                "❌ LOA session expired.",
+                ephemeral=True
+            )
+
+            return
+
+        embed = discord.Embed(
+            title="📋 LOA Request",
+            color=discord.Color.blue()
+        )
+
+        embed.add_field(
+            name="User",
+            value=interaction.user.mention,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Reason",
+            value=self.reason.value,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Start Month",
+            value=view.start_month,
+            inline=True
+        )
+
+        embed.add_field(
+            name="End Month",
+            value=view.end_month,
+            inline=True
+        )
+
+        embed.add_field(
+            name="End Day",
+            value=self.end_day.value,
+            inline=True
+        )
+
+        embed.set_footer(
+            text=f"Submitted by {interaction.user}"
+        )
+
+        await interaction.response.send_message(
+            "✅ LOA submitted successfully.",
+            ephemeral=True
+        )
+
+        await interaction.channel.send(
+            content=interaction.user.mention,
+            embed=embed
+        )
+
+
 class StartMonthSelect(discord.ui.Select):
 
     def __init__(self):
+
         super().__init__(
             placeholder="Select Start Month",
             options=months
         )
 
     async def callback(self, interaction):
+
         self.view.start_month = self.values[0]
 
         await interaction.response.defer()
@@ -54,12 +140,14 @@ class StartMonthSelect(discord.ui.Select):
 class EndMonthSelect(discord.ui.Select):
 
     def __init__(self):
+
         super().__init__(
             placeholder="Select End Month",
             options=months
         )
 
     async def callback(self, interaction):
+
         self.view.end_month = self.values[0]
 
         await interaction.response.defer()
@@ -78,10 +166,10 @@ class LOAView(discord.ui.View):
         self.add_item(EndMonthSelect())
 
     @discord.ui.button(
-        label="Submit LOA",
+        label="Continue",
         style=discord.ButtonStyle.green
     )
-    async def submit_button(
+    async def continue_button(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button
@@ -96,41 +184,12 @@ class LOAView(discord.ui.View):
 
             return
 
-        embed = discord.Embed(
-            title="📋 LOA Request",
-            color=discord.Color.blue()
-        )
+        interaction.client.active_views[
+            interaction.user.id
+        ] = self
 
-        embed.add_field(
-            name="User",
-            value=interaction.user.mention,
-            inline=False
-        )
-
-        embed.add_field(
-            name="Start Month",
-            value=self.start_month,
-            inline=True
-        )
-
-        embed.add_field(
-            name="End Month",
-            value=self.end_month,
-            inline=True
-        )
-
-        embed.set_footer(
-            text=f"Submitted by {interaction.user}"
-        )
-
-        await interaction.response.send_message(
-            "✅ LOA submitted successfully.",
-            ephemeral=True
-        )
-
-        await interaction.channel.send(
-            content=interaction.user.mention,
-            embed=embed
+        await interaction.response.send_modal(
+            LOAModal()
         )
 
 
@@ -178,5 +237,7 @@ async def loa(
         ephemeral=True
     )
 
+
+bot.active_views = {}
 
 bot.run(TOKEN)
