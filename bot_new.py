@@ -80,7 +80,7 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
             return
 
         embed = discord.Embed(
-            title="📋 LOA Request",
+            title="📋 Leave Of Absence",
             color=discord.Color.red()
         )
 
@@ -291,10 +291,10 @@ async def on_ready():
 
 
 @bot.tree.command(
-    name="leaveofabsence",
+    name="loa",
     description="Submit a Leave of Absence request"
 )
-async def leaveofabsence(
+async def loa(
     interaction: discord.Interaction
 ):
 
