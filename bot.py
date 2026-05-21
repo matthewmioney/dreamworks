@@ -1,14 +1,24 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import sqlite3
 import os
+from datetime import datetime
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
 GUILD_ID = 1211555736283516938
 ADMIN_ROLE_ID = 1211555736304357429
+
+RANK_ROLES = {
+    1287680549137420401: "Owner",
+    1211555736304357429: "Manager",
+    1211555736283516945: "Supervisor",
+    1211555736304357426: "Sr. Mechanic",
+    1211555736283516947: "Mechanic",
+    1211555736283516946: "Trainee"
+}
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -21,44 +31,13 @@ bot = commands.Bot(
 
 active_loas = {}
 
-months = [
-    discord.SelectOption(label=month)
-    for month in [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December"
-    ]
-]
-
-years = [
-    discord.SelectOption(label=str(year))
-    for year in range(2026, 2031)
-]
-
 conn = sqlite3.connect("database.db")
 cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS loas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT,
-    username TEXT,
-    reason TEXT,
-    start_month TEXT,
-    start_year TEXT,
-    end_month TEXT,
-    end_year TEXT,
-    end_day TEXT,
-    status TEXT,
+    end_date TEXT,
     message_id TEXT,
     channel_id TEXT
 )
@@ -67,7 +46,32 @@ CREATE TABLE IF NOT EXISTS loas (
 conn.commit()
 
 
-class LOAModal(discord.ui.Modal, title="LOA Details"):
+def get_rank(member):
+
+    for role_id, rank_name in RANK_ROLES.items():
+
+        role = member.guild.get_role(role_id)
+
+        if role in member.roles:
+
+            return rank_name
+
+    return "Unknown"
+
+
+class LOAModal(discord.ui.Modal, title="Leave Of Absence Form"):
+
+    start_date = discord.ui.TextInput(
+        label="Start Date",
+        placeholder="MM/DD/YYYY",
+        required=True
+    )
+
+    end_date = discord.ui.TextInput(
+        label="End Date",
+        placeholder="MM/DD/YYYY",
+        required=True
+    )
 
     reason = discord.ui.TextInput(
         label="Reason",
@@ -76,27 +80,14 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
         max_length=500
     )
 
-    end_day = discord.ui.TextInput(
-        label="End Day",
-        placeholder="Example: 21",
-        required=True,
-        max_length=2
-    )
+    async def on_submit(
+        self,
+        interaction: discord.Interaction
+    ):
 
-    async def on_submit(self, interaction: discord.Interaction):
-
-        view = interaction.client.active_views.get(
-            interaction.user.id
+        rank = get_rank(
+            interaction.user
         )
-
-        if not view:
-
-            await interaction.response.send_message(
-                "❌ LOA session expired.",
-                ephemeral=True
-            )
-
-            return
 
         embed = discord.Embed(
             title="📋 Leave Of Absence",
@@ -110,27 +101,37 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
         )
 
         embed.add_field(
+            name="Rank",
+            value=rank,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Start Date",
+            value=self.start_date.value,
+            inline=True
+        )
+
+        embed.add_field(
+            name="End Date",
+            value=self.end_date.value,
+            inline=True
+        )
+
+        embed.add_field(
             name="Reason",
             value=self.reason.value,
             inline=False
         )
 
         embed.add_field(
-            name="Start",
-            value=f"{view.start_month} {view.start_year}",
-            inline=True
-        )
-
-        embed.add_field(
-            name="End",
-            value=f"{view.end_month} {self.end_day.value}, {view.end_year}",
-            inline=True
-        )
-
-        embed.add_field(
             name="Status",
             value="LOA Active",
             inline=False
+        )
+
+        embed.set_footer(
+            text=f"Submitted by {interaction.user}"
         )
 
         admin_role = f"<@&{ADMIN_ROLE_ID}>"
@@ -146,28 +147,14 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
             """
             INSERT INTO loas (
                 user_id,
-                username,
-                reason,
-                start_month,
-                start_year,
-                end_month,
-                end_year,
-                end_day,
-                status,
+                end_date,
                 message_id,
                 channel_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?)
             """,
             (
                 str(interaction.user.id),
-                interaction.user.name,
-                self.reason.value,
-                view.start_month,
-                view.start_year,
-                view.end_month,
-                view.end_year,
-                self.end_day.value,
-                "Active",
+                self.end_date.value,
                 str(msg.id),
                 str(interaction.channel.id)
             )
@@ -178,119 +165,6 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
         await interaction.response.send_message(
             "✅ LOA submitted successfully.",
             ephemeral=True
-        )
-
-
-class StartMonthSelect(discord.ui.Select):
-
-    def __init__(self):
-
-        super().__init__(
-            placeholder="Select Start Month",
-            options=months
-        )
-
-    async def callback(self, interaction):
-
-        self.view.start_month = self.values[0]
-
-        await interaction.response.defer()
-
-
-class EndMonthSelect(discord.ui.Select):
-
-    def __init__(self):
-
-        super().__init__(
-            placeholder="Select End Month",
-            options=months
-        )
-
-    async def callback(self, interaction):
-
-        self.view.end_month = self.values[0]
-
-        await interaction.response.defer()
-
-
-class StartYearSelect(discord.ui.Select):
-
-    def __init__(self):
-
-        super().__init__(
-            placeholder="Select Start Year",
-            options=years
-        )
-
-    async def callback(self, interaction):
-
-        self.view.start_year = self.values[0]
-
-        await interaction.response.defer()
-
-
-class EndYearSelect(discord.ui.Select):
-
-    def __init__(self):
-
-        super().__init__(
-            placeholder="Select End Year",
-            options=years
-        )
-
-    async def callback(self, interaction):
-
-        self.view.end_year = self.values[0]
-
-        await interaction.response.defer()
-
-
-class LOAView(discord.ui.View):
-
-    def __init__(self):
-
-        super().__init__(timeout=300)
-
-        self.start_month = None
-        self.end_month = None
-        self.start_year = None
-        self.end_year = None
-
-        self.add_item(StartMonthSelect())
-        self.add_item(StartYearSelect())
-        self.add_item(EndMonthSelect())
-        self.add_item(EndYearSelect())
-
-    @discord.ui.button(
-        label="Continue",
-        style=discord.ButtonStyle.green
-    )
-    async def continue_button(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        if not all([
-            self.start_month,
-            self.end_month,
-            self.start_year,
-            self.end_year
-        ]):
-
-            await interaction.response.send_message(
-                "❌ Select all dates first.",
-                ephemeral=True
-            )
-
-            return
-
-        interaction.client.active_views[
-            interaction.user.id
-        ] = self
-
-        await interaction.response.send_modal(
-            LOAModal()
         )
 
 
@@ -321,7 +195,7 @@ class AdminPanel(discord.ui.View):
 
         text = ""
 
-        for user_id, message_id in active_loas.items():
+        for user_id in active_loas:
 
             user = await bot.fetch_user(user_id)
 
@@ -362,13 +236,101 @@ class AdminPanel(discord.ui.View):
         )
 
 
+@tasks.loop(minutes=30)
+async def check_expired_loas():
+
+    now = datetime.now()
+
+    cursor.execute(
+        "SELECT * FROM loas"
+    )
+
+    rows = cursor.fetchall()
+
+    for row in rows:
+
+        user_id = int(row[0])
+        end_date = row[1]
+        message_id = int(row[2])
+        channel_id = int(row[3])
+
+        try:
+
+            end = datetime.strptime(
+                end_date,
+                "%m/%d/%Y"
+            )
+
+            if now >= end:
+
+                channel = bot.get_channel(
+                    channel_id
+                )
+
+                message = await channel.fetch_message(
+                    message_id
+                )
+
+                embed = message.embeds[0]
+
+                new_embed = discord.Embed(
+                    title=embed.title,
+                    color=discord.Color.red()
+                )
+
+                for field in embed.fields:
+
+                    if field.name == "Status":
+
+                        new_embed.add_field(
+                            name="Status",
+                            value="LOA Ended",
+                            inline=False
+                        )
+
+                    else:
+
+                        new_embed.add_field(
+                            name=field.name,
+                            value=field.value,
+                            inline=field.inline
+                        )
+
+                await message.edit(
+                    embed=new_embed
+                )
+
+                await channel.send(
+                    f"<@{user_id}> your LOA has ended."
+                )
+
+                cursor.execute(
+                    "DELETE FROM loas WHERE user_id=?",
+                    (str(user_id),)
+                )
+
+                conn.commit()
+
+        except:
+            pass
+
+
 @bot.event
 async def on_ready():
 
-    guild = discord.Object(id=GUILD_ID)
+    guild = discord.Object(
+        id=GUILD_ID
+    )
 
-    bot.tree.copy_global_to(guild=guild)
-    await bot.tree.sync(guild=guild)
+    bot.tree.copy_global_to(
+        guild=guild
+    )
+
+    await bot.tree.sync(
+        guild=guild
+    )
+
+    check_expired_loas.start()
 
     print(f"Logged in as {bot.user}")
 
@@ -377,18 +339,12 @@ async def on_ready():
     name="loa",
     description="Submit a Leave of Absence request"
 )
-async def loa(interaction: discord.Interaction):
+async def loa(
+    interaction: discord.Interaction
+):
 
-    embed = discord.Embed(
-        title="📋 LOA Request Form",
-        description="Select your LOA dates below.",
-        color=discord.Color.blue()
-    )
-
-    await interaction.response.send_message(
-        embed=embed,
-        view=LOAView(),
-        ephemeral=True
+    await interaction.response.send_modal(
+        LOAModal()
     )
 
 
@@ -396,7 +352,9 @@ async def loa(interaction: discord.Interaction):
     name="loacancel",
     description="Cancel your active LOA"
 )
-async def loacancel(interaction: discord.Interaction):
+async def loacancel(
+    interaction: discord.Interaction
+):
 
     if interaction.user.id not in active_loas:
 
@@ -469,7 +427,9 @@ async def loacancel(interaction: discord.Interaction):
     name="panel",
     description="Open the admin LOA panel"
 )
-async def panel(interaction: discord.Interaction):
+async def panel(
+    interaction: discord.Interaction
+):
 
     role = interaction.guild.get_role(
         ADMIN_ROLE_ID
@@ -497,6 +457,4 @@ async def panel(interaction: discord.Interaction):
     )
 
 
-bot.active_views = {}
-
-bot.run(TOKEN)# Paste your working bot.py from chat here
+bot.run(TOKEN)
