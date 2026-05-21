@@ -10,7 +10,6 @@ from datetime import datetime
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
-GUILD_ID = 1211555736283516938
 ADMIN_ROLE_ID = 1211555736304357429
 
 RANK_ROLES = {
@@ -42,7 +41,9 @@ CHANNELS_FILE = "sales_channels.json"
 
 
 def load_json(file, default):
+
     if not os.path.exists(file):
+
         with open(file, "w") as f:
             json.dump(default, f)
 
@@ -51,12 +52,20 @@ def load_json(file, default):
 
 
 def save_json(file, data):
+
     with open(file, "w") as f:
         json.dump(data, f, indent=4)
 
 
-sales_data = load_json(SALES_FILE, {})
-sales_channels = load_json(CHANNELS_FILE, [])
+sales_data = load_json(
+    SALES_FILE,
+    {}
+)
+
+sales_channels = load_json(
+    CHANNELS_FILE,
+    []
+)
 
 # =========================
 # DATABASE
@@ -81,7 +90,9 @@ def get_rank(member):
 
     for role_id, rank_name in RANK_ROLES.items():
 
-        role = member.guild.get_role(role_id)
+        role = member.guild.get_role(
+            role_id
+        )
 
         if role in member.roles:
 
@@ -90,7 +101,14 @@ def get_rank(member):
     return "Unknown"
 
 
-class LOAModal(discord.ui.Modal, title="Leave Of Absence Form"):
+# =========================
+# LOA MODAL
+# =========================
+
+class LOAModal(
+    discord.ui.Modal,
+    title="Leave Of Absence Form"
+):
 
     start_date = discord.ui.TextInput(
         label="Start Date",
@@ -176,7 +194,9 @@ class LOAModal(discord.ui.Modal, title="Leave Of Absence Form"):
             embed=embed
         )
 
-        active_loas[interaction.user.id] = msg.id
+        active_loas[
+            interaction.user.id
+        ] = msg.id
 
         cursor.execute(
             """
@@ -203,11 +223,17 @@ class LOAModal(discord.ui.Modal, title="Leave Of Absence Form"):
         )
 
 
+# =========================
+# ADMIN PANEL
+# =========================
+
 class AdminPanel(discord.ui.View):
 
     def __init__(self):
 
-        super().__init__(timeout=None)
+        super().__init__(
+            timeout=None
+        )
 
     @discord.ui.button(
         label="View Active LOAs",
@@ -232,7 +258,9 @@ class AdminPanel(discord.ui.View):
 
         for user_id in active_loas:
 
-            user = await bot.fetch_user(user_id)
+            user = await bot.fetch_user(
+                user_id
+            )
 
             text += f"• {user.name}\n"
 
@@ -270,6 +298,10 @@ class AdminPanel(discord.ui.View):
             ephemeral=True
         )
 
+
+# =========================
+# CHECK EXPIRED LOAS
+# =========================
 
 @tasks.loop(minutes=30)
 async def check_expired_loas():
@@ -364,47 +396,75 @@ async def on_message(message):
 
         content = message.content.strip()
 
-        match = re.search(r"\$?([\d,]+)", content)
+        match = re.search(
+            r"\$?([\d,]+)",
+            content
+        )
 
         if match:
 
-            amount = int(match.group(1).replace(",", ""))
+            amount = int(
+                match.group(1).replace(",", "")
+            )
 
-            user_id = str(message.author.id)
-            username = str(message.author)
+            user_id = str(
+                message.author.id
+            )
+
+            username = str(
+                message.author
+            )
 
             if user_id not in sales_data:
+
                 sales_data[user_id] = {
                     "name": username,
                     "sales": 0
                 }
 
-            sales_data[user_id]["name"] = username
-            sales_data[user_id]["sales"] += amount
+            sales_data[user_id][
+                "name"
+            ] = username
 
-            save_json(SALES_FILE, sales_data)
+            sales_data[user_id][
+                "sales"
+            ] += amount
 
-    await bot.process_commands(message)
+            save_json(
+                SALES_FILE,
+                sales_data
+            )
 
+    await bot.process_commands(
+        message
+    )
+
+
+# =========================
+# READY EVENT
+# =========================
 
 @bot.event
 async def on_ready():
 
-    guild = discord.Object(
-        id=GUILD_ID
+    try:
+
+        synced = await bot.tree.sync()
+
+        print(
+            f"Synced {len(synced)} commands globally."
+        )
+
+    except Exception as e:
+
+        print(e)
+
+    if not check_expired_loas.is_running():
+        check_expired_loas.start()
+
+    print(
+        f"Logged in as {bot.user}"
     )
-
-    bot.tree.copy_global_to(
-        guild=guild
-    )
-
-    await bot.tree.sync(
-        guild=guild
-    )
-
-    check_expired_loas.start()
-
-    print(f"Logged in as {bot.user}")
 
 
 # =========================
@@ -438,7 +498,9 @@ async def addsaleschannel(
 
         return
 
-    sales_channels.append(channel.id)
+    sales_channels.append(
+        channel.id
+    )
 
     save_json(
         CHANNELS_FILE,
@@ -472,7 +534,9 @@ async def sales(
 
         return
 
-    total = sales_data[user_id]["sales"]
+    total = sales_data[user_id][
+        "sales"
+    ]
 
     embed = discord.Embed(
         title="💰 Sales Totals",
