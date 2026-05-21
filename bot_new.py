@@ -66,17 +66,13 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
         interaction: discord.Interaction
     ):
 
-        await interaction.response.defer(
-            ephemeral=True
-        )
-
         view = interaction.client.active_views.get(
             interaction.user.id
         )
 
         if not view:
 
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 "❌ LOA session expired.",
                 ephemeral=True
             )
@@ -149,7 +145,7 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
 
         active_loas[interaction.user.id] = msg.id
 
-        await interaction.followup.send(
+        await interaction.response.send_message(
             "✅ LOA submitted successfully.",
             ephemeral=True
         )
@@ -168,7 +164,9 @@ class StartMonthSelect(discord.ui.Select):
 
         self.view.start_month = self.values[0]
 
-        await interaction.response.defer()
+        await interaction.response.edit_message(
+            view=self.view
+        )
 
 
 class EndMonthSelect(discord.ui.Select):
@@ -184,7 +182,9 @@ class EndMonthSelect(discord.ui.Select):
 
         self.view.end_month = self.values[0]
 
-        await interaction.response.defer()
+        await interaction.response.edit_message(
+            view=self.view
+        )
 
 
 class StartYearSelect(discord.ui.Select):
@@ -200,7 +200,9 @@ class StartYearSelect(discord.ui.Select):
 
         self.view.start_year = self.values[0]
 
-        await interaction.response.defer()
+        await interaction.response.edit_message(
+            view=self.view
+        )
 
 
 class EndYearSelect(discord.ui.Select):
@@ -216,7 +218,9 @@ class EndYearSelect(discord.ui.Select):
 
         self.view.end_year = self.values[0]
 
-        await interaction.response.defer()
+        await interaction.response.edit_message(
+            view=self.view
+        )
 
 
 class LOAView(discord.ui.View):
