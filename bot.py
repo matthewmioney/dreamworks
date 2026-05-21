@@ -130,8 +130,12 @@ class LOAModal(discord.ui.Modal, title="Leave Of Absence Form"):
             inline=False
         )
 
+        current_date = datetime.now().strftime(
+            "%m/%d/%Y"
+        )
+
         embed.set_footer(
-            text=f"Submitted by {interaction.user}"
+            text=f"Submitted on {current_date}"
         )
 
         admin_role = f"<@&{ADMIN_ROLE_ID}>"
@@ -401,6 +405,14 @@ async def loacancel(
                     value=field.value,
                     inline=field.inline
                 )
+
+        current_date = datetime.now().strftime(
+            "%m/%d/%Y"
+        )
+
+        new_embed.set_footer(
+            text=f"Cancelled on {current_date}"
+        )
 
         await message.edit(
             embed=new_embed
