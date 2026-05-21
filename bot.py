@@ -7,7 +7,11 @@ import os
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
+GUILD_ID = 1211555736283516938
+
 intents = discord.Intents.default()
+intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
@@ -54,11 +58,37 @@ class LOAModal(discord.ui.Modal, title="LOA Request"):
             color=discord.Color.blue()
         )
 
-        embed.add_field(name="Username", value=self.username.value, inline=False)
-        embed.add_field(name="Rank", value=self.rank.value, inline=False)
-        embed.add_field(name="Reason", value=self.reason.value, inline=False)
-        embed.add_field(name="Start Date", value=self.start_date.value, inline=True)
-        embed.add_field(name="End Date", value=self.end_date.value, inline=True)
+        embed.add_field(
+            name="Username",
+            value=self.username.value,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Rank",
+            value=self.rank.value,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Reason",
+            value=self.reason.value,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Start Date",
+            value=self.start_date.value,
+            inline=True
+        )
+
+        embed.add_field(
+            name="End Date",
+            value=self.end_date.value,
+            inline=True
+        )
+
+        embed.set_footer(text=f"Submitted by {interaction.user}")
 
         await interaction.response.send_message(
             "✅ LOA submitted successfully.",
@@ -70,12 +100,23 @@ class LOAModal(discord.ui.Modal, title="LOA Request"):
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
+
+    guild = discord.Object(id=GUILD_ID)
+
+    bot.tree.copy_global_to(guild=guild)
+
+    synced = await bot.tree.sync(guild=guild)
+
+    print(f"Synced {len(synced)} command(s)")
     print(f"Logged in as {bot.user}")
 
 
-@bot.tree.command(name="loa", description="Submit an LOA")
+@bot.tree.command(
+    name="loa",
+    description="Submit an LOA"
+)
 async def loa(interaction: discord.Interaction):
+
     await interaction.response.send_modal(LOAModal())
 
 
