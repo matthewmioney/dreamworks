@@ -164,9 +164,7 @@ class StartMonthSelect(discord.ui.Select):
 
         self.view.start_month = self.values[0]
 
-        await interaction.response.edit_message(
-            view=self.view
-        )
+        await interaction.response.defer()
 
 
 class EndMonthSelect(discord.ui.Select):
@@ -182,9 +180,7 @@ class EndMonthSelect(discord.ui.Select):
 
         self.view.end_month = self.values[0]
 
-        await interaction.response.edit_message(
-            view=self.view
-        )
+        await interaction.response.defer()
 
 
 class StartYearSelect(discord.ui.Select):
@@ -200,9 +196,7 @@ class StartYearSelect(discord.ui.Select):
 
         self.view.start_year = self.values[0]
 
-        await interaction.response.edit_message(
-            view=self.view
-        )
+        await interaction.response.defer()
 
 
 class EndYearSelect(discord.ui.Select):
@@ -218,9 +212,7 @@ class EndYearSelect(discord.ui.Select):
 
         self.view.end_year = self.values[0]
 
-        await interaction.response.edit_message(
-            view=self.view
-        )
+        await interaction.response.defer()
 
 
 class LOAView(discord.ui.View):
