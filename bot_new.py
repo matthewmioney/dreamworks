@@ -81,7 +81,7 @@ class LOAModal(discord.ui.Modal, title="LOA Details"):
 
         embed = discord.Embed(
             title="📋 Leave Of Absence",
-            color=discord.Color.red()
+            color=discord.Color.green()
         )
 
         embed.add_field(
@@ -344,7 +344,7 @@ async def loacancel(
 
         new_embed = discord.Embed(
             title=embed.title,
-            color=discord.Color.green()
+            color=discord.Color.red()
         )
 
         for field in embed.fields:
