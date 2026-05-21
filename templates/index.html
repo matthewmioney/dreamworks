@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>LOA Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<h1>LOA Dashboard</h1>
+<table>
+<tr><th>User</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
+{% for loa in loas %}
+<tr>
+<td>{{ loa.username }}</td>
+<td>{{ loa.reason }}</td>
+<td>{{ loa.status }}</td>
+<td><a href="/cancel/{{ loa.id }}">Cancel</a> <a href="/delete/{{ loa.id }}">Delete</a></td>
+</tr>
+{% endfor %}
+</table>
+</body>
+</html>
