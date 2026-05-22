@@ -3,8 +3,6 @@ from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import sqlite3
 import os
-import json
-import re
 from datetime import datetime
 
 load_dotenv()
@@ -33,41 +31,6 @@ bot = commands.Bot(
 active_loas = {}
 
 # =========================
-# SALES SYSTEM
-# =========================
-
-SALES_FILE = "sales_data.json"
-CHANNELS_FILE = "sales_channels.json"
-
-
-def load_json(file, default):
-
-    if not os.path.exists(file):
-
-        with open(file, "w") as f:
-            json.dump(default, f)
-
-    with open(file, "r") as f:
-        return json.load(f)
-
-
-def save_json(file, data):
-
-    with open(file, "w") as f:
-        json.dump(data, f, indent=4)
-
-
-sales_data = load_json(
-    SALES_FILE,
-    {}
-)
-
-sales_channels = load_json(
-    CHANNELS_FILE,
-    []
-)
-
-# =========================
 # DATABASE
 # =========================
 
@@ -90,9 +53,7 @@ def get_rank(member):
 
     for role_id, rank_name in RANK_ROLES.items():
 
-        role = member.guild.get_role(
-            role_id
-        )
+        role = member.guild.get_role(role_id)
 
         if role in member.roles:
 
@@ -194,9 +155,7 @@ class LOAModal(
             embed=embed
         )
 
-        active_loas[
-            interaction.user.id
-        ] = msg.id
+        active_loas[interaction.user.id] = msg.id
 
         cursor.execute(
             """
@@ -231,9 +190,7 @@ class AdminPanel(discord.ui.View):
 
     def __init__(self):
 
-        super().__init__(
-            timeout=None
-        )
+        super().__init__(timeout=None)
 
     @discord.ui.button(
         label="View Active LOAs",
@@ -258,9 +215,7 @@ class AdminPanel(discord.ui.View):
 
         for user_id in active_loas:
 
-            user = await bot.fetch_user(
-                user_id
-            )
+            user = await bot.fetch_user(user_id)
 
             text += f"• {user.name}\n"
 
@@ -295,6 +250,196 @@ class AdminPanel(discord.ui.View):
 
         await interaction.response.send_message(
             embed=embed,
+            ephemeral=True
+        )
+
+
+# =========================
+# LEADERBOARD SYSTEM
+# =========================
+
+leaderboard_entries = {}
+
+
+class AddPersonModal(discord.ui.Modal):
+
+    def __init__(self):
+
+        super().__init__(
+            title="Add Leaderboard Entry"
+        )
+
+        self.name_input = discord.ui.TextInput(
+            label="Employee Name",
+            placeholder="Kevin Flenory",
+            required=True,
+            max_length=50
+        )
+
+        self.sales_input = discord.ui.TextInput(
+            label="Sales Total",
+            placeholder="155500",
+            required=True,
+            max_length=20
+        )
+
+        self.add_item(self.name_input)
+        self.add_item(self.sales_input)
+
+    async def on_submit(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        try:
+
+            sales = int(
+                self.sales_input.value.replace(",", "")
+            )
+
+        except:
+
+            await interaction.response.send_message(
+                "❌ Sales must be a number.",
+                ephemeral=True
+            )
+
+            return
+
+        leaderboard_entries[
+            self.name_input.value
+        ] = sales
+
+        await interaction.response.send_message(
+            f"✅ Added {self.name_input.value}",
+            ephemeral=True
+        )
+
+
+class LeaderboardView(discord.ui.View):
+
+    def __init__(self):
+
+        super().__init__(
+            timeout=600
+        )
+
+    @discord.ui.button(
+        label="➕ Add Person",
+        style=discord.ButtonStyle.green
+    )
+    async def add_person(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        await interaction.response.send_modal(
+            AddPersonModal()
+        )
+
+    @discord.ui.button(
+        label="🏁 Finish Leaderboard",
+        style=discord.ButtonStyle.blurple
+    )
+    async def finish_board(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        if not leaderboard_entries:
+
+            await interaction.response.send_message(
+                "❌ No entries added.",
+                ephemeral=True
+            )
+
+            return
+
+        sorted_entries = sorted(
+            leaderboard_entries.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        embed = discord.Embed(
+            title="🔧 MECHANIC SHOP LEADERBOARD 🔧",
+            description=(
+                "```"
+                "╔════════════════════════════╗\n"
+                "      TOP MECHANICS\n"
+                "╚════════════════════════════╝"
+                "```"
+            ),
+            color=0x2b2d31
+        )
+
+        embed.set_image(
+            url="https://media.giphy.com/media/l0MYGb1LuZ3n7dRnO/giphy.gif"
+        )
+
+        text = ""
+
+        medals = [
+            "🥇",
+            "🥈",
+            "🥉"
+        ]
+
+        for index, (name, sales) in enumerate(
+            sorted_entries,
+            start=1
+        ):
+
+            if index <= 3:
+
+                medal = medals[index - 1]
+
+                text += (
+                    f"{medal} **{name.upper()}**\n"
+                    f"💰 `${sales:,}`\n"
+                    f"━━━━━━━━━━━━━━━━━━\n\n"
+                )
+
+            else:
+
+                text += (
+                    f"🔧 **#{index} {name.upper()}**\n"
+                    f"💰 `${sales:,}`\n"
+                    f"━━━━━━━━━━━━━━━━━━\n\n"
+                )
+
+        embed.add_field(
+            name="🏆 SALES RANKINGS",
+            value=text,
+            inline=False
+        )
+
+        embed.set_footer(
+            text="Luxury Auto Performance Division"
+        )
+
+        await interaction.response.send_message(
+            embed=embed
+        )
+
+        leaderboard_entries.clear()
+
+    @discord.ui.button(
+        label="🗑 Cancel",
+        style=discord.ButtonStyle.red
+    )
+    async def cancel_board(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        leaderboard_entries.clear()
+
+        await interaction.response.send_message(
+            "❌ Leaderboard cancelled.",
             ephemeral=True
         )
 
@@ -383,64 +528,6 @@ async def check_expired_loas():
 
 
 # =========================
-# SALES TRACKER
-# =========================
-
-@bot.event
-async def on_message(message):
-
-    if message.author.bot:
-        return
-
-    if message.channel.id in sales_channels:
-
-        content = message.content.strip()
-
-        match = re.search(
-            r"\$?([\d,]+)",
-            content
-        )
-
-        if match:
-
-            amount = int(
-                match.group(1).replace(",", "")
-            )
-
-            user_id = str(
-                message.author.id
-            )
-
-            username = str(
-                message.author
-            )
-
-            if user_id not in sales_data:
-
-                sales_data[user_id] = {
-                    "name": username,
-                    "sales": 0
-                }
-
-            sales_data[user_id][
-                "name"
-            ] = username
-
-            sales_data[user_id][
-                "sales"
-            ] += amount
-
-            save_json(
-                SALES_FILE,
-                sales_data
-            )
-
-    await bot.process_commands(
-        message
-    )
-
-
-# =========================
 # READY EVENT
 # =========================
 
@@ -468,136 +555,37 @@ async def on_ready():
 
 
 # =========================
-# SALES COMMANDS
+# LEADERBOARD COMMAND
 # =========================
 
 @bot.tree.command(
-    name="addsaleschannel",
-    description="Add a sales tracking channel"
+    name="leaderboardcreate",
+    description="Create a mechanic leaderboard"
 )
-async def addsaleschannel(
-    interaction: discord.Interaction,
-    channel: discord.TextChannel
-):
-
-    if not interaction.user.guild_permissions.administrator:
-
-        await interaction.response.send_message(
-            "❌ You must be an admin.",
-            ephemeral=True
-        )
-
-        return
-
-    if channel.id in sales_channels:
-
-        await interaction.response.send_message(
-            "❌ Channel already monitored.",
-            ephemeral=True
-        )
-
-        return
-
-    sales_channels.append(
-        channel.id
-    )
-
-    save_json(
-        CHANNELS_FILE,
-        sales_channels
-    )
-
-    await interaction.response.send_message(
-        f"✅ Now monitoring {channel.mention}"
-    )
-
-
-@bot.tree.command(
-    name="sales",
-    description="Check your sales"
-)
-async def sales(
-    interaction: discord.Interaction,
-    member: discord.Member = None
-):
-
-    if member is None:
-        member = interaction.user
-
-    user_id = str(member.id)
-
-    if user_id not in sales_data:
-
-        await interaction.response.send_message(
-            f"❌ {member.mention} has no sales."
-        )
-
-        return
-
-    total = sales_data[user_id][
-        "sales"
-    ]
-
-    embed = discord.Embed(
-        title="💰 Sales Totals",
-        color=discord.Color.green()
-    )
-
-    embed.add_field(
-        name=member.display_name,
-        value=f"${total:,}",
-        inline=False
-    )
-
-    await interaction.response.send_message(
-        embed=embed
-    )
-
-
-@bot.tree.command(
-    name="topsales",
-    description="View sales leaderboard"
-)
-async def topsales(
+async def leaderboardcreate(
     interaction: discord.Interaction
 ):
 
-    if not sales_data:
-
-        await interaction.response.send_message(
-            "❌ No sales recorded."
-        )
-
-        return
-
-    sorted_sales = sorted(
-        sales_data.items(),
-        key=lambda x: x[1]["sales"],
-        reverse=True
-    )
-
     embed = discord.Embed(
-        title="🏆 Top Sales",
-        color=discord.Color.gold()
+        title="🔧 Mechanic Leaderboard Creator",
+        description=(
+            "Use the buttons below to build your "
+            "leaderboard.\n\n"
+            "➕ Add unlimited people\n"
+            "🏁 Finish when done\n"
+            "🗑 Cancel anytime"
+        ),
+        color=0x2b2d31
     )
 
-    text = ""
-
-    for index, (_, data) in enumerate(
-        sorted_sales[:10],
-        start=1
-    ):
-
-        text += (
-            f"**#{index}** "
-            f"{data['name']} — "
-            f"${data['sales']:,}\n"
-        )
-
-    embed.description = text
+    embed.set_image(
+        url="https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif"
+    )
 
     await interaction.response.send_message(
-        embed=embed
+        embed=embed,
+        view=LeaderboardView(),
+        ephemeral=True
     )
 
 
