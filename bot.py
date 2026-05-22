@@ -377,10 +377,11 @@ class LeaderboardView(discord.ui.View):
         )
 
         embed = discord.Embed(
-            title="🔧 LOS SANTOS CUSTOMS 🔧",
+            title="🔧 DREAMWORKS CUSTOMS 🔧",
             description=(
                 "```"
                 "╔════════════════════════════╗\n"
+                "    DREAMWORKS CUSTOMS\n"
                 "     TOP SALES LEADERBOARD\n"
                 f"FOR THE WEEK ENDING IN:\n"
                 f"{leaderboard_date}\n"
@@ -432,7 +433,7 @@ class LeaderboardView(discord.ui.View):
         )
 
         embed.set_footer(
-            text="FiveM Mechanic Performance System"
+            text="Dreamworks Customs Performance System"
         )
 
         await interaction.response.send_message(
@@ -582,7 +583,7 @@ async def leaderboardcreate(
 ):
 
     embed = discord.Embed(
-        title="🔧 Mechanic Leaderboard Creator",
+        title="🔧 Dreamworks Customs Leaderboard Creator",
         description=(
             "Use the buttons below to build your "
             "leaderboard.\n\n"
