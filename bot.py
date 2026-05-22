@@ -364,19 +364,19 @@ class LeaderboardView(discord.ui.View):
         )
 
         embed = discord.Embed(
-            title="🔧 MECHANIC SHOP LEADERBOARD 🔧",
+            title="🔧 LOS SANTOS CUSTOMS 🔧",
             description=(
                 "```"
                 "╔════════════════════════════╗\n"
-                "      TOP MECHANICS\n"
+                "     TOP SALES LEADERBOARD\n"
                 "╚════════════════════════════╝"
                 "```"
             ),
-            color=0x2b2d31
+            color=0x1f1f1f
         )
 
         embed.set_image(
-            url="https://media.giphy.com/media/l0MYGb1LuZ3n7dRnO/giphy.gif"
+            url="https://media.tenor.com/images/4b8f0e6b9db7ef1b4f0b9e7f86db5a0c/tenor.gif"
         )
 
         text = ""
@@ -417,7 +417,7 @@ class LeaderboardView(discord.ui.View):
         )
 
         embed.set_footer(
-            text="Luxury Auto Performance Division"
+            text="FiveM Mechanic Performance System"
         )
 
         await interaction.response.send_message(
@@ -575,11 +575,11 @@ async def leaderboardcreate(
             "🏁 Finish when done\n"
             "🗑 Cancel anytime"
         ),
-        color=0x2b2d31
+        color=0x1f1f1f
     )
 
     embed.set_image(
-        url="https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif"
+        url="https://media.tenor.com/images/4b8f0e6b9db7ef1b4f0b9e7f86db5a0c/tenor.gif"
     )
 
     await interaction.response.send_message(
