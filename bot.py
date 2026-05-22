@@ -259,6 +259,7 @@ class AdminPanel(discord.ui.View):
 # =========================
 
 leaderboard_entries = {}
+leaderboard_date = "Unknown"
 
 
 class AddPersonModal(discord.ui.Modal):
@@ -283,13 +284,23 @@ class AddPersonModal(discord.ui.Modal):
             max_length=20
         )
 
+        self.date_input = discord.ui.TextInput(
+            label="Week Ending Date",
+            placeholder="06/01/2026",
+            required=True,
+            max_length=20
+        )
+
         self.add_item(self.name_input)
         self.add_item(self.sales_input)
+        self.add_item(self.date_input)
 
     async def on_submit(
         self,
         interaction: discord.Interaction
     ):
+
+        global leaderboard_date
 
         try:
 
@@ -309,6 +320,8 @@ class AddPersonModal(discord.ui.Modal):
         leaderboard_entries[
             self.name_input.value
         ] = sales
+
+        leaderboard_date = self.date_input.value
 
         await interaction.response.send_message(
             f"✅ Added {self.name_input.value}",
@@ -369,6 +382,8 @@ class LeaderboardView(discord.ui.View):
                 "```"
                 "╔════════════════════════════╗\n"
                 "     TOP SALES LEADERBOARD\n"
+                f"FOR THE WEEK ENDING IN:\n"
+                f"{leaderboard_date}\n"
                 "╚════════════════════════════╝"
                 "```"
             ),
