@@ -237,29 +237,6 @@ class AdminPanel(discord.ui.View):
             ephemeral=True
         )
 
-    @discord.ui.button(
-        label="Clear All LOAs",
-        style=discord.ButtonStyle.red
-    )
-    async def clear_loas(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        active_loas.clear()
-
-        embed = discord.Embed(
-            title="🛑 LOAs Cleared",
-            description="All active LOAs were removed.",
-            color=discord.Color.red()
-        )
-
-        await interaction.response.send_message(
-            embed=embed,
-            ephemeral=True
-        )
-
 
 # =========================
 # EMPLOYEE SELECT
@@ -322,9 +299,18 @@ class AmountModal(discord.ui.Modal):
 
         self.employee_name = employee_name
 
+        current_amount = ""
+
+        for name, amount in leaderboard_entries:
+
+            if name == employee_name:
+
+                current_amount = str(amount)
+
         self.amount_input = discord.ui.TextInput(
             label="Sales Amount",
             placeholder="5079200",
+            default=current_amount,
             required=True,
             max_length=20
         )
@@ -351,6 +337,13 @@ class AmountModal(discord.ui.Modal):
 
             return
 
+        global leaderboard_entries
+
+        leaderboard_entries = [
+            entry for entry in leaderboard_entries
+            if entry[0] != self.employee_name
+        ]
+
         leaderboard_entries.append(
             (
                 self.employee_name,
@@ -359,7 +352,7 @@ class AmountModal(discord.ui.Modal):
         )
 
         await interaction.response.send_message(
-            f"✅ Added {self.employee_name}",
+            f"✅ Updated {self.employee_name} to ${amount:,}",
             ephemeral=True
         )
 
@@ -510,7 +503,7 @@ async def leaderboardcreate(
         title="Sales Leaderboard",
         description=(
             "Select employees from the dropdown.\n"
-            "Enter sales amount.\n"
+            "Enter or edit sales amount.\n"
             "Press Finish when done."
         ),
         color=0x2b2d31
