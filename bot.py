@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import sqlite3
-import os
 from datetime import datetime
+import os
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
@@ -255,73 +255,63 @@ class AdminPanel(discord.ui.View):
 
 
 # =========================
-# LEADERBOARD SYSTEM
+# SIMPLE LEADERBOARD SYSTEM
 # =========================
 
-leaderboard_entries = {}
-leaderboard_date = "Unknown"
+leaderboard_entries = []
 
 
-class AddPersonModal(discord.ui.Modal):
+class AddLineModal(discord.ui.Modal):
 
     def __init__(self):
 
         super().__init__(
-            title="Add Leaderboard Entry"
+            title="Add Sales Leader"
         )
 
         self.name_input = discord.ui.TextInput(
-            label="Employee Name",
-            placeholder="Kevin Flenory",
+            label="Name",
+            placeholder="Donny",
             required=True,
             max_length=50
         )
 
-        self.sales_input = discord.ui.TextInput(
-            label="Sales Total",
-            placeholder="155500",
-            required=True,
-            max_length=20
-        )
-
-        self.date_input = discord.ui.TextInput(
-            label="Week Ending Date",
-            placeholder="06/01/2026",
+        self.amount_input = discord.ui.TextInput(
+            label="Sales Amount",
+            placeholder="1000000",
             required=True,
             max_length=20
         )
 
         self.add_item(self.name_input)
-        self.add_item(self.sales_input)
-        self.add_item(self.date_input)
+        self.add_item(self.amount_input)
 
     async def on_submit(
         self,
         interaction: discord.Interaction
     ):
 
-        global leaderboard_date
-
         try:
 
-            sales = int(
-                self.sales_input.value.replace(",", "")
+            amount = int(
+                self.amount_input.value.replace(",", "")
             )
 
         except:
 
             await interaction.response.send_message(
-                "❌ Sales must be a number.",
+                "❌ Amount must be a number.",
                 ephemeral=True
             )
 
             return
 
-        leaderboard_entries[
-            self.name_input.value
-        ] = sales
-
-        leaderboard_date = self.date_input.value
+        leaderboard_entries.append(
+            (
+                self.name_input.value,
+                amount
+            )
+        )
 
         await interaction.response.send_message(
             f"✅ Added {self.name_input.value}",
@@ -338,21 +328,21 @@ class LeaderboardView(discord.ui.View):
         )
 
     @discord.ui.button(
-        label="➕ Add Person",
+        label="+ Add Line",
         style=discord.ButtonStyle.green
     )
-    async def add_person(
+    async def add_line(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button
     ):
 
         await interaction.response.send_modal(
-            AddPersonModal()
+            AddLineModal()
         )
 
     @discord.ui.button(
-        label="🏁 Finish Leaderboard",
+        label="Finish",
         style=discord.ButtonStyle.blurple
     )
     async def finish_board(
@@ -371,69 +361,28 @@ class LeaderboardView(discord.ui.View):
             return
 
         sorted_entries = sorted(
-            leaderboard_entries.items(),
+            leaderboard_entries,
             key=lambda x: x[1],
             reverse=True
         )
 
-        embed = discord.Embed(
-            title="🔧 DREAMWORKS CUSTOMS 🔧",
-            description=(
-                "```"
-                "╔════════════════════════════╗\n"
-                "    DREAMWORKS CUSTOMS\n"
-                "     TOP SALES LEADERBOARD\n"
-                f"FOR THE WEEK ENDING IN:\n"
-                f"{leaderboard_date}\n"
-                "╚════════════════════════════╝"
-                "```"
-            ),
-            color=0x1f1f1f
-        )
+        leaderboard_text = ""
 
-        embed.set_image(
-            url="https://media.tenor.com/images/4b8f0e6b9db7ef1b4f0b9e7f86db5a0c/tenor.gif"
-        )
-
-        text = ""
-
-        medals = [
-            "🥇",
-            "🥈",
-            "🥉"
-        ]
-
-        for index, (name, sales) in enumerate(
+        for index, (name, amount) in enumerate(
             sorted_entries,
             start=1
         ):
 
-            if index <= 3:
+            leaderboard_text += (
+                f"**{index}. {name}** "
+                f"------ "
+                f"**${amount:,}**\n\n"
+            )
 
-                medal = medals[index - 1]
-
-                text += (
-                    f"{medal} **{name.upper()}**\n"
-                    f"💰 `${sales:,}`\n"
-                    f"━━━━━━━━━━━━━━━━━━\n\n"
-                )
-
-            else:
-
-                text += (
-                    f"🔧 **#{index} {name.upper()}**\n"
-                    f"💰 `${sales:,}`\n"
-                    f"━━━━━━━━━━━━━━━━━━\n\n"
-                )
-
-        embed.add_field(
-            name="🏆 SALES RANKINGS",
-            value=text,
-            inline=False
-        )
-
-        embed.set_footer(
-            text="Dreamworks Customs Performance System"
+        embed = discord.Embed(
+            title="Sales Leaders",
+            description=leaderboard_text,
+            color=0x2b2d31
         )
 
         await interaction.response.send_message(
@@ -443,7 +392,7 @@ class LeaderboardView(discord.ui.View):
         leaderboard_entries.clear()
 
     @discord.ui.button(
-        label="🗑 Cancel",
+        label="Cancel",
         style=discord.ButtonStyle.red
     )
     async def cancel_board(
@@ -576,26 +525,21 @@ async def on_ready():
 
 @bot.tree.command(
     name="leaderboardcreate",
-    description="Create a mechanic leaderboard"
+    description="Create a sales leaderboard"
 )
 async def leaderboardcreate(
     interaction: discord.Interaction
 ):
 
     embed = discord.Embed(
-        title="🔧 Dreamworks Customs Leaderboard Creator",
+        title="Sales Leaderboard Creator",
         description=(
-            "Use the buttons below to build your "
-            "leaderboard.\n\n"
-            "➕ Add unlimited people\n"
-            "🏁 Finish when done\n"
-            "🗑 Cancel anytime"
+            "Use the buttons below.\n\n"
+            "+ Add Line → Add another person\n"
+            "Finish → Send leaderboard\n"
+            "Cancel → Delete leaderboard"
         ),
-        color=0x1f1f1f
-    )
-
-    embed.set_image(
-        url="https://media.tenor.com/images/4b8f0e6b9db7ef1b4f0b9e7f86db5a0c/tenor.gif"
+        color=0x2b2d31
     )
 
     await interaction.response.send_message(
