@@ -271,14 +271,14 @@ class AddLineModal(discord.ui.Modal):
 
         self.name_input = discord.ui.TextInput(
             label="Name",
-            placeholder="Donny",
+            placeholder="Xavier Saint",
             required=True,
             max_length=50
         )
 
         self.amount_input = discord.ui.TextInput(
-            label="Sales Amount",
-            placeholder="1000000",
+            label="Amount",
+            placeholder="5079200",
             required=True,
             max_length=20
         )
@@ -366,13 +366,7 @@ class LeaderboardView(discord.ui.View):
             reverse=True
         )
 
-        leaderboard_text = (
-            "```"
-            "\n"
-            "╔══════════════════════════════════════╗\n"
-            "              SALES LEADERS\n"
-            "╚══════════════════════════════════════╝\n\n"
-        )
+        leaderboard_text = ""
 
         for index, (name, amount) in enumerate(
             sorted_entries,
@@ -380,11 +374,10 @@ class LeaderboardView(discord.ui.View):
         ):
 
             leaderboard_text += (
-                f"{index}. {name}  --------  "
-                f"${amount:,}\n\n"
+                f"**{index}. {name} "
+                f"----- "
+                f"${amount:,}**\n\n\n"
             )
-
-        leaderboard_text += "```"
 
         await interaction.response.send_message(
             leaderboard_text
