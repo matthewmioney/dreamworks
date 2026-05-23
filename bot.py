@@ -366,7 +366,7 @@ class LeaderboardView(discord.ui.View):
             reverse=True
         )
 
-        leaderboard_text = ""
+        leaderboard_text = "# SALES LEADERS\n\n"
 
         for index, (name, amount) in enumerate(
             sorted_entries,
@@ -376,7 +376,7 @@ class LeaderboardView(discord.ui.View):
             leaderboard_text += (
                 f"**{index}. {name} "
                 f"----- "
-                f"${amount:,}**\n\n\n"
+                f"${amount:,}**\n\n"
             )
 
         await interaction.response.send_message(
