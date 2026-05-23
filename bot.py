@@ -255,7 +255,7 @@ class AdminPanel(discord.ui.View):
 
 
 # =========================
-# SIMPLE LEADERBOARD SYSTEM
+# SALES LEADERBOARD SYSTEM
 # =========================
 
 leaderboard_entries = []
@@ -266,95 +266,57 @@ class AddLineModal(discord.ui.Modal):
     def __init__(self):
 
         super().__init__(
-            title="Add Sales Leader"
+            title="Sales Leaders"
         )
 
-        self.name_input = discord.ui.TextInput(
-            label="Name",
-            placeholder="Xavier Saint",
+        self.entries_input = discord.ui.TextInput(
+            label="Enter Name - Amount",
+            placeholder=(
+                "Xavier Saint - 5079200\n"
+                "Amon Demon - 4320600\n"
+                "Clover Duke - 4908400"
+            ),
+            style=discord.TextStyle.paragraph,
             required=True,
-            max_length=50
+            max_length=4000
         )
 
-        self.amount_input = discord.ui.TextInput(
-            label="Amount",
-            placeholder="5079200",
-            required=True,
-            max_length=20
-        )
-
-        self.add_item(self.name_input)
-        self.add_item(self.amount_input)
+        self.add_item(self.entries_input)
 
     async def on_submit(
         self,
         interaction: discord.Interaction
     ):
 
-        try:
+        global leaderboard_entries
 
-            amount = int(
-                self.amount_input.value.replace(",", "")
-            )
+        leaderboard_entries.clear()
 
-        except:
+        lines = self.entries_input.value.splitlines()
 
-            await interaction.response.send_message(
-                "❌ Amount must be a number.",
-                ephemeral=True
-            )
+        for line in lines:
 
-            return
+            try:
 
-        leaderboard_entries.append(
-            (
-                self.name_input.value,
-                amount
-            )
-        )
+                name, amount = line.split("-")
 
-        await interaction.response.send_message(
-            f"✅ Added {self.name_input.value}",
-            ephemeral=True
-        )
+                name = name.strip()
 
+                amount = int(
+                    amount.strip().replace(",", "")
+                )
 
-class LeaderboardView(discord.ui.View):
+                leaderboard_entries.append(
+                    (name, amount)
+                )
 
-    def __init__(self):
-
-        super().__init__(
-            timeout=600
-        )
-
-    @discord.ui.button(
-        label="+ Add Line",
-        style=discord.ButtonStyle.green
-    )
-    async def add_line(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        await interaction.response.send_modal(
-            AddLineModal()
-        )
-
-    @discord.ui.button(
-        label="Finish",
-        style=discord.ButtonStyle.blurple
-    )
-    async def finish_board(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+            except:
+                continue
 
         if not leaderboard_entries:
 
             await interaction.response.send_message(
-                "❌ No entries added.",
+                "❌ Invalid format.",
                 ephemeral=True
             )
 
@@ -385,21 +347,27 @@ class LeaderboardView(discord.ui.View):
 
         leaderboard_entries.clear()
 
+
+class LeaderboardView(discord.ui.View):
+
+    def __init__(self):
+
+        super().__init__(
+            timeout=600
+        )
+
     @discord.ui.button(
-        label="Cancel",
-        style=discord.ButtonStyle.red
+        label="Open Leaderboard Form",
+        style=discord.ButtonStyle.green
     )
-    async def cancel_board(
+    async def open_form(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button
     ):
 
-        leaderboard_entries.clear()
-
-        await interaction.response.send_message(
-            "❌ Leaderboard cancelled.",
-            ephemeral=True
+        await interaction.response.send_modal(
+            AddLineModal()
         )
 
 
@@ -526,12 +494,12 @@ async def leaderboardcreate(
 ):
 
     embed = discord.Embed(
-        title="Sales Leaderboard Creator",
+        title="Sales Leaderboard",
         description=(
-            "Use the buttons below.\n\n"
-            "+ Add Line → Add another person\n"
-            "Finish → Send leaderboard\n"
-            "Cancel → Delete leaderboard"
+            "Paste your sales leaders like this:\n\n"
+            "Xavier Saint - 5079200\n"
+            "Amon Demon - 4320600\n"
+            "Clover Duke - 4908400"
         ),
         color=0x2b2d31
     )
