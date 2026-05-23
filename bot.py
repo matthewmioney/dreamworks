@@ -29,6 +29,7 @@ bot = commands.Bot(
 )
 
 active_loas = {}
+leaderboard_entries = []
 
 # =========================
 # DATABASE
@@ -43,6 +44,12 @@ CREATE TABLE IF NOT EXISTS loas (
     end_date TEXT,
     message_id TEXT,
     channel_id TEXT
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS employees (
+    name TEXT
 )
 """)
 
@@ -255,68 +262,138 @@ class AdminPanel(discord.ui.View):
 
 
 # =========================
-# SALES LEADERBOARD SYSTEM
+# EMPLOYEE SELECT
 # =========================
 
-leaderboard_entries = []
-
-
-class AddLineModal(discord.ui.Modal):
+class EmployeeSelect(discord.ui.Select):
 
     def __init__(self):
 
+        cursor.execute(
+            "SELECT name FROM employees"
+        )
+
+        employees = cursor.fetchall()
+
+        options = []
+
+        for employee in employees[:25]:
+
+            options.append(
+                discord.SelectOption(
+                    label=employee[0],
+                    value=employee[0]
+                )
+            )
+
         super().__init__(
-            title="Sales Leaders"
+            placeholder="Select Employee",
+            min_values=1,
+            max_values=1,
+            options=options
         )
 
-        self.entries_input = discord.ui.TextInput(
-            label="Enter Name - Amount",
-            placeholder=(
-                "Xavier Saint - 5079200\n"
-                "Amon Demon - 4320600\n"
-                "Clover Duke - 4908400"
-            ),
-            style=discord.TextStyle.paragraph,
+    async def callback(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        selected_name = self.values[0]
+
+        await interaction.response.send_modal(
+            AmountModal(selected_name)
+        )
+
+
+# =========================
+# AMOUNT MODAL
+# =========================
+
+class AmountModal(discord.ui.Modal):
+
+    def __init__(
+        self,
+        employee_name
+    ):
+
+        super().__init__(
+            title=f"{employee_name} Sales"
+        )
+
+        self.employee_name = employee_name
+
+        self.amount_input = discord.ui.TextInput(
+            label="Sales Amount",
+            placeholder="5079200",
             required=True,
-            max_length=4000
+            max_length=20
         )
 
-        self.add_item(self.entries_input)
+        self.add_item(self.amount_input)
 
     async def on_submit(
         self,
         interaction: discord.Interaction
     ):
 
-        global leaderboard_entries
+        try:
 
-        leaderboard_entries.clear()
+            amount = int(
+                self.amount_input.value.replace(",", "")
+            )
 
-        lines = self.entries_input.value.splitlines()
+        except:
 
-        for line in lines:
+            await interaction.response.send_message(
+                "❌ Invalid amount.",
+                ephemeral=True
+            )
 
-            try:
+            return
 
-                name, amount = line.split("-")
+        leaderboard_entries.append(
+            (
+                self.employee_name,
+                amount
+            )
+        )
 
-                name = name.strip()
+        await interaction.response.send_message(
+            f"✅ Added {self.employee_name}",
+            ephemeral=True
+        )
 
-                amount = int(
-                    amount.strip().replace(",", "")
-                )
 
-                leaderboard_entries.append(
-                    (name, amount)
-                )
+# =========================
+# LEADERBOARD VIEW
+# =========================
 
-            except:
-                continue
+class LeaderboardView(discord.ui.View):
+
+    def __init__(self):
+
+        super().__init__(
+            timeout=600
+        )
+
+        self.add_item(
+            EmployeeSelect()
+        )
+
+    @discord.ui.button(
+        label="Finish Leaderboard",
+        style=discord.ButtonStyle.green
+    )
+    async def finish_board(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
 
         if not leaderboard_entries:
 
             await interaction.response.send_message(
-                "❌ Invalid format.",
+                "❌ No entries added.",
                 ephemeral=True
             )
 
@@ -347,28 +424,103 @@ class AddLineModal(discord.ui.Modal):
 
         leaderboard_entries.clear()
 
-
-class LeaderboardView(discord.ui.View):
-
-    def __init__(self):
-
-        super().__init__(
-            timeout=600
-        )
-
     @discord.ui.button(
-        label="Open Leaderboard Form",
-        style=discord.ButtonStyle.green
+        label="Cancel",
+        style=discord.ButtonStyle.red
     )
-    async def open_form(
+    async def cancel_board(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button
     ):
 
-        await interaction.response.send_modal(
-            AddLineModal()
+        leaderboard_entries.clear()
+
+        await interaction.response.send_message(
+            "❌ Leaderboard cancelled.",
+            ephemeral=True
         )
+
+
+# =========================
+# ADD EMPLOYEE
+# =========================
+
+@bot.tree.command(
+    name="addemployee",
+    description="Add employee to dropdown"
+)
+async def addemployee(
+    interaction: discord.Interaction,
+    name: str
+):
+
+    cursor.execute(
+        "INSERT INTO employees VALUES (?)",
+        (name,)
+    )
+
+    conn.commit()
+
+    await interaction.response.send_message(
+        f"✅ Added {name}",
+        ephemeral=True
+    )
+
+
+# =========================
+# REMOVE EMPLOYEE
+# =========================
+
+@bot.tree.command(
+    name="removeemployee",
+    description="Remove employee from dropdown"
+)
+async def removeemployee(
+    interaction: discord.Interaction,
+    name: str
+):
+
+    cursor.execute(
+        "DELETE FROM employees WHERE name=?",
+        (name,)
+    )
+
+    conn.commit()
+
+    await interaction.response.send_message(
+        f"✅ Removed {name}",
+        ephemeral=True
+    )
+
+
+# =========================
+# LEADERBOARD COMMAND
+# =========================
+
+@bot.tree.command(
+    name="leaderboardcreate",
+    description="Create leaderboard"
+)
+async def leaderboardcreate(
+    interaction: discord.Interaction
+):
+
+    embed = discord.Embed(
+        title="Sales Leaderboard",
+        description=(
+            "Select employees from the dropdown.\n"
+            "Enter sales amount.\n"
+            "Press Finish when done."
+        ),
+        color=0x2b2d31
+    )
+
+    await interaction.response.send_message(
+        embed=embed,
+        view=LeaderboardView(),
+        ephemeral=True
+    )
 
 
 # =========================
@@ -478,36 +630,6 @@ async def on_ready():
 
     print(
         f"Logged in as {bot.user}"
-    )
-
-
-# =========================
-# LEADERBOARD COMMAND
-# =========================
-
-@bot.tree.command(
-    name="leaderboardcreate",
-    description="Create a sales leaderboard"
-)
-async def leaderboardcreate(
-    interaction: discord.Interaction
-):
-
-    embed = discord.Embed(
-        title="Sales Leaderboard",
-        description=(
-            "Paste your sales leaders like this:\n\n"
-            "Xavier Saint - 5079200\n"
-            "Amon Demon - 4320600\n"
-            "Clover Duke - 4908400"
-        ),
-        color=0x2b2d31
-    )
-
-    await interaction.response.send_message(
-        embed=embed,
-        view=LeaderboardView(),
-        ephemeral=True
     )
 
 
