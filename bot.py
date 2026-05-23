@@ -366,7 +366,13 @@ class LeaderboardView(discord.ui.View):
             reverse=True
         )
 
-        leaderboard_text = ""
+        leaderboard_text = (
+            "```"
+            "\n"
+            "╔══════════════════════════════════════╗\n"
+            "              SALES LEADERS\n"
+            "╚══════════════════════════════════════╝\n\n"
+        )
 
         for index, (name, amount) in enumerate(
             sorted_entries,
@@ -374,19 +380,14 @@ class LeaderboardView(discord.ui.View):
         ):
 
             leaderboard_text += (
-                f"**{index}. {name}** "
-                f"------ "
-                f"**${amount:,}**\n\n"
+                f"{index}. {name}  --------  "
+                f"${amount:,}\n\n"
             )
 
-        embed = discord.Embed(
-            title="Sales Leaders",
-            description=leaderboard_text,
-            color=0x2b2d31
-        )
+        leaderboard_text += "```"
 
         await interaction.response.send_message(
-            embed=embed
+            leaderboard_text
         )
 
         leaderboard_entries.clear()
