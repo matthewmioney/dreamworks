@@ -413,6 +413,8 @@ class LeaderboardView(discord.ui.View):
             EmployeeSelect()
         )
 
+        self.leaderboard_message = None
+
     @discord.ui.button(
         label="Edit Sales",
         style=discord.ButtonStyle.blurple
@@ -423,14 +425,9 @@ class LeaderboardView(discord.ui.View):
         button: discord.ui.Button
     ):
 
-        self.clear_items()
-
-        self.add_item(
-            EmployeeSelect()
-        )
-
-        await interaction.response.edit_message(
-            view=self
+        await interaction.response.send_message(
+            "Select the employee again from the dropdown to edit their sales.",
+            ephemeral=True
         )
 
     @discord.ui.button(
@@ -442,6 +439,8 @@ class LeaderboardView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button
     ):
+
+        global leaderboard_entries
 
         if not leaderboard_entries:
 
@@ -471,11 +470,24 @@ class LeaderboardView(discord.ui.View):
                 f"${amount:,}**\n\n"
             )
 
-        await interaction.response.send_message(
-            leaderboard_text
-        )
+        if self.leaderboard_message:
 
-        leaderboard_entries.clear()
+            await self.leaderboard_message.edit(
+                content=leaderboard_text
+            )
+
+            await interaction.response.send_message(
+                "✅ Leaderboard updated.",
+                ephemeral=True
+            )
+
+        else:
+
+            await interaction.response.send_message(
+                leaderboard_text
+            )
+
+            self.leaderboard_message = await interaction.original_response()
 
     @discord.ui.button(
         label="Clear All",
@@ -487,7 +499,15 @@ class LeaderboardView(discord.ui.View):
         button: discord.ui.Button
     ):
 
+        global leaderboard_entries
+
         leaderboard_entries.clear()
+
+        if self.leaderboard_message:
+
+            await self.leaderboard_message.delete()
+
+            self.leaderboard_message = None
 
         await interaction.response.send_message(
             "🗑️ Cleared leaderboard entries.",
