@@ -53,6 +53,46 @@ CREATE TABLE IF NOT EXISTS employees (
 )
 """)
 
+default_employees = [
+    "Matthew Wright",
+    "Braxton Chrisp",
+    "Cameron White",
+    "Malik White",
+    "Myla Chester",
+    "Olivia Love",
+    "Tommy Williams",
+    "Landon Black",
+    "Donny Winter",
+    "Alan Duke",
+    "Amon Demon",
+    "Folabi White",
+    "Jay Clayton",
+    "Kevin Flenory",
+    "Pauly Devini",
+    "Ryan Thomas",
+    "Scrim Wright",
+    "Teiko Lucenti-Price",
+    "Timothy Walker",
+    "Xavier Saint",
+    "Clover Duke"
+]
+
+for employee in default_employees:
+
+    cursor.execute(
+        "SELECT * FROM employees WHERE name=?",
+        (employee,)
+    )
+
+    existing = cursor.fetchone()
+
+    if not existing:
+
+        cursor.execute(
+            "INSERT INTO employees VALUES (?)",
+            (employee,)
+        )
+
 conn.commit()
 
 
@@ -467,6 +507,22 @@ async def addemployee(
     interaction: discord.Interaction,
     name: str
 ):
+
+    cursor.execute(
+        "SELECT * FROM employees WHERE name=?",
+        (name,)
+    )
+
+    existing = cursor.fetchone()
+
+    if existing:
+
+        await interaction.response.send_message(
+            f"❌ {name} already exists.",
+            ephemeral=True
+        )
+
+        return
 
     cursor.execute(
         "INSERT INTO employees VALUES (?)",
