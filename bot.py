@@ -374,6 +374,26 @@ class LeaderboardView(discord.ui.View):
         )
 
     @discord.ui.button(
+        label="Edit Sales",
+        style=discord.ButtonStyle.blurple
+    )
+    async def edit_sales(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        self.clear_items()
+
+        self.add_item(
+            EmployeeSelect()
+        )
+
+        await interaction.response.edit_message(
+            view=self
+        )
+
+    @discord.ui.button(
         label="Finish Leaderboard",
         style=discord.ButtonStyle.green
     )
@@ -418,10 +438,10 @@ class LeaderboardView(discord.ui.View):
         leaderboard_entries.clear()
 
     @discord.ui.button(
-        label="Cancel",
+        label="Clear All",
         style=discord.ButtonStyle.red
     )
-    async def cancel_board(
+    async def clear_board(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button
@@ -430,7 +450,7 @@ class LeaderboardView(discord.ui.View):
         leaderboard_entries.clear()
 
         await interaction.response.send_message(
-            "❌ Leaderboard cancelled.",
+            "🗑️ Cleared leaderboard entries.",
             ephemeral=True
         )
 
