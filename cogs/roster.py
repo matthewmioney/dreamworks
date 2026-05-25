@@ -36,11 +36,6 @@ ROLE_IDS = {
     "Trainee": 1211555736283516946
 }
 
-
-# =========================
-# BUILD ROSTER
-# =========================
-
 def build_roster():
 
     text = "# 👥 DreamWorks Employee Roster\n\n"
@@ -85,10 +80,6 @@ def build_roster():
     return text
 
 
-# =========================
-# COG
-# =========================
-
 class Roster(commands.Cog):
 
     def __init__(self, bot):
@@ -99,7 +90,7 @@ class Roster(commands.Cog):
 
     async def update_roster(
         self,
-        ctx
+        channel
     ):
 
         roster_text = build_roster()
@@ -112,7 +103,7 @@ class Roster(commands.Cog):
 
         else:
 
-            self.roster_message = await ctx.send(
+            self.roster_message = await channel.send(
                 roster_text
             )
 
@@ -120,24 +111,35 @@ class Roster(commands.Cog):
     # SETUP ROSTER
     # =========================
 
-    @commands.command()
+    @discord.app_commands.command(
+        name="setup_roster",
+        description="Setup roster"
+    )
     async def setup_roster(
         self,
-        ctx
+        interaction: discord.Interaction
     ):
 
+        await interaction.response.send_message(
+            "✅ Roster created.",
+            ephemeral=True
+        )
+
         await self.update_roster(
-            ctx
+            interaction.channel
         )
 
     # =========================
     # HIRE
     # =========================
 
-    @commands.command()
+    @discord.app_commands.command(
+        name="hire",
+        description="Hire employee"
+    )
     async def hire(
         self,
-        ctx,
+        interaction: discord.Interaction,
         member: discord.Member,
         code: str
     ):
@@ -156,7 +158,7 @@ class Roster(commands.Cog):
 
         conn.commit()
 
-        trainee_role = ctx.guild.get_role(
+        trainee_role = interaction.guild.get_role(
             ROLE_IDS["Trainee"]
         )
 
@@ -164,22 +166,25 @@ class Roster(commands.Cog):
             trainee_role
         )
 
-        await ctx.send(
+        await interaction.response.send_message(
             f"✅ Hired {member.mention}"
         )
 
         await self.update_roster(
-            ctx
+            interaction.channel
         )
 
     # =========================
     # FIRE
     # =========================
 
-    @commands.command()
+    @discord.app_commands.command(
+        name="fire",
+        description="Fire employee"
+    )
     async def fire(
         self,
-        ctx,
+        interaction: discord.Interaction,
         member: discord.Member
     ):
 
@@ -195,7 +200,7 @@ class Roster(commands.Cog):
 
         for role_id in ROLE_IDS.values():
 
-            role = ctx.guild.get_role(
+            role = interaction.guild.get_role(
                 role_id
             )
 
@@ -205,22 +210,25 @@ class Roster(commands.Cog):
                     role
                 )
 
-        await ctx.send(
+        await interaction.response.send_message(
             f"🔥 Fired {member.mention}"
         )
 
         await self.update_roster(
-            ctx
+            interaction.channel
         )
 
     # =========================
     # PROMOTE
     # =========================
 
-    @commands.command()
+    @discord.app_commands.command(
+        name="promote",
+        description="Promote employee"
+    )
     async def promote(
         self,
-        ctx,
+        interaction: discord.Interaction,
         member: discord.Member
     ):
 
@@ -236,7 +244,7 @@ class Roster(commands.Cog):
 
         if not result:
 
-            await ctx.send(
+            await interaction.response.send_message(
                 "❌ Employee not found."
             )
 
@@ -250,7 +258,7 @@ class Roster(commands.Cog):
 
         if index == 0:
 
-            await ctx.send(
+            await interaction.response.send_message(
                 "❌ Already highest rank."
             )
 
@@ -274,11 +282,11 @@ class Roster(commands.Cog):
 
         conn.commit()
 
-        old_role = ctx.guild.get_role(
+        old_role = interaction.guild.get_role(
             ROLE_IDS[current_rank]
         )
 
-        new_role = ctx.guild.get_role(
+        new_role = interaction.guild.get_role(
             ROLE_IDS[new_rank]
         )
 
@@ -292,22 +300,25 @@ class Roster(commands.Cog):
             new_role
         )
 
-        await ctx.send(
+        await interaction.response.send_message(
             f"⬆️ Promoted {member.mention} to {new_rank}"
         )
 
         await self.update_roster(
-            ctx
+            interaction.channel
         )
 
     # =========================
     # DEMOTE
     # =========================
 
-    @commands.command()
+    @discord.app_commands.command(
+        name="demote",
+        description="Demote employee"
+    )
     async def demote(
         self,
-        ctx,
+        interaction: discord.Interaction,
         member: discord.Member
     ):
 
@@ -323,7 +334,7 @@ class Roster(commands.Cog):
 
         if not result:
 
-            await ctx.send(
+            await interaction.response.send_message(
                 "❌ Employee not found."
             )
 
@@ -337,7 +348,7 @@ class Roster(commands.Cog):
 
         if index == len(RANK_ORDER) - 1:
 
-            await ctx.send(
+            await interaction.response.send_message(
                 "❌ Already lowest rank."
             )
 
@@ -361,11 +372,11 @@ class Roster(commands.Cog):
 
         conn.commit()
 
-        old_role = ctx.guild.get_role(
+        old_role = interaction.guild.get_role(
             ROLE_IDS[current_rank]
         )
 
-        new_role = ctx.guild.get_role(
+        new_role = interaction.guild.get_role(
             ROLE_IDS[new_rank]
         )
 
@@ -379,12 +390,12 @@ class Roster(commands.Cog):
             new_role
         )
 
-        await ctx.send(
+        await interaction.response.send_message(
             f"⬇️ Demoted {member.mention} to {new_rank}"
         )
 
         await self.update_roster(
-            ctx
+            interaction.channel
         )
 
 async def setup(bot):
