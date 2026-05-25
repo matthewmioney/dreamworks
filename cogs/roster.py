@@ -280,7 +280,7 @@ class Roster(commands.Cog):
 
     @app_commands.command(
         name="roster",
-        description="View the employee roster"
+        description="View the team roster"
     )
 
     async def roster(self, interaction: discord.Interaction):
@@ -312,12 +312,12 @@ class Roster(commands.Cog):
             rank = info["rank"]
 
             if rank in grouped:
-                grouped[rank].append(info["name"])
+                grouped[rank].append(user_id)
 
         total_employees = len(data)
 
         embed = discord.Embed(
-            title="👥 DreamWorks\nEmployee Roster",
+            title="👥 DreamWorks\nTeam Roster",
             color=discord.Color.dark_gray()
         )
 
@@ -338,7 +338,7 @@ class Roster(commands.Cog):
             if users:
 
                 user_list = "\n".join(
-                    [f"• {u}" for u in users]
+                    [f"• <@{u}>" for u in users]
                 )
 
             else:
