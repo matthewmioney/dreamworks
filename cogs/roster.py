@@ -1,400 +1,296 @@
 import discord
 from discord.ext import commands
-import sqlite3
+from discord import app_commands
+import json
+import os
 
-conn = sqlite3.connect(
-    "database.db"
+# =========================
+# TOKEN
+# =========================
+
+TOKEN = os.getenv("TOKEN")
+
+# =========================
+# BOT SETUP
+# =========================
+
+intents = discord.Intents.default()
+intents.members = True
+
+bot = commands.Bot(
+    command_prefix="!",
+    intents=intents
 )
 
-cursor = conn.cursor()
+ROSTER_FILE = "roster.json"
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS roster (
-    name TEXT,
-    rank TEXT
+# =========================
+# RANK SYSTEM
+# =========================
+
+RANK_NAMES = {
+    "0": "Trainee",
+    "1": "Junior Staff",
+    "2": "Staff",
+    "3": "Senior Staff",
+    "4": "Supervisor",
+    "5": "Manager"
+}
+
+VALID_RANKS = list(RANK_NAMES.keys())
+
+# =========================
+# LOAD / SAVE FUNCTIONS
+# =========================
+
+def load_roster():
+
+    if not os.path.exists(ROSTER_FILE):
+        return {}
+
+    with open(ROSTER_FILE, "r") as f:
+        return json.load(f)
+
+def save_roster(data):
+
+    with open(ROSTER_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+# =========================
+# READY EVENT
+# =========================
+
+@bot.event
+async def on_ready():
+
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ Synced {len(synced)} commands.")
+
+    except Exception as e:
+        print(e)
+
+    print(f"✅ Logged in as {bot.user}")
+
+# =========================
+# SETUP ROSTER
+# =========================
+
+@bot.tree.command(
+    name="setup_roster",
+    description="Create the roster file"
 )
-""")
+async def setup_roster(interaction: discord.Interaction):
 
-conn.commit()
+    if not os.path.exists(ROSTER_FILE):
 
-RANK_ORDER = {
-    0: "Trainee",
-    1: "Mechanic",
-    2: "Sr Mechanic",
-    3: "Supervisor",
-    4: "Assistant Manager",
-    5: "Manager"
-}
-
-ROLE_IDS = {
-    "Manager": 1211555736304357429,
-    "Assistant Manager": 1211555736283516945,
-    "Supervisor": 1211555736283516945,
-    "Sr Mechanic": 1211555736304357426,
-    "Mechanic": 1211555736283516947,
-    "Trainee": 1211555736283516946
-}
-
-def build_roster():
-
-    text = "# 👥 DreamWorks Employee Roster\n\n"
-
-    total = 0
-
-    for rank in RANK_ORDER:
-
-        cursor.execute(
-            "SELECT * FROM roster WHERE rank=?",
-            (rank,)
-        )
-
-        employees = cursor.fetchall()
-
-        total += len(employees)
-
-        text += (
-            f"## **{rank} — {len(employees)}**\n"
-        )
-
-        if employees:
-
-            for employee in employees:
-
-                text += (
-                    f"• {employee[0]}\n"
-                )
-
-        else:
-
-            text += "None\n"
-
-        text += "\n"
-
-    text = (
-        f"## Total Employees: {total}\n\n"
-        + text
-    )
-
-    return text
-
-
-class Roster(commands.Cog):
-
-    def __init__(self, bot):
-
-        self.bot = bot
-
-        self.roster_message = None
-
-    async def update_roster(
-        self,
-        channel
-    ):
-
-        roster_text = build_roster()
-
-        if self.roster_message:
-
-            await self.roster_message.edit(
-                content=roster_text
-            )
-
-        else:
-
-            self.roster_message = await channel.send(
-                roster_text
-            )
-
-    @discord.app_commands.command(
-        name="setup_roster",
-        description="Setup roster"
-    )
-    async def setup_roster(
-        self,
-        interaction: discord.Interaction
-    ):
+        save_roster({})
 
         await interaction.response.send_message(
             "✅ Roster created.",
             ephemeral=True
         )
 
-        await self.update_roster(
-            interaction.channel
-        )
-
-    @discord.app_commands.command(
-        name="hire",
-        description="Hire employee"
-    )
-    async def hire(
-        self,
-        interaction: discord.Interaction,
-        member: discord.Member,
-        rank: str
-    ):
-
-        valid_ranks = [
-            "Manager",
-            "Assistant Manager",
-            "Supervisor",
-            "Sr Mechanic",
-            "Mechanic",
-            "Trainee"
-        ]
-
-        if rank not in valid_ranks:
-
-            await interaction.response.send_message(
-                "❌ Invalid rank.",
-                ephemeral=True
-            )
-
-            return
-
-        cursor.execute(
-            """
-            INSERT INTO roster
-            VALUES (?, ?)
-            """,
-            (
-                member.name,
-                rank
-            )
-        )
-
-        conn.commit()
-
-        role = interaction.guild.get_role(
-            ROLE_IDS[rank]
-        )
-
-        await member.add_roles(
-            role
-        )
+    else:
 
         await interaction.response.send_message(
-            f"✅ Hired {member.mention} as {rank}"
+            "⚠️ Roster already exists.",
+            ephemeral=True
         )
 
-        await self.update_roster(
-            interaction.channel
-        )
+# =========================
+# HIRE USER
+# =========================
 
-    @discord.app_commands.command(
-        name="fire",
-        description="Fire employee"
-    )
-    async def fire(
-        self,
-        interaction: discord.Interaction,
-        member: discord.Member
-    ):
+@bot.tree.command(
+    name="hire",
+    description="Hire a user"
+)
 
-        cursor.execute(
-            """
-            DELETE FROM roster
-            WHERE name=?
-            """,
-            (member.name,)
-        )
+@app_commands.describe(
+    member="User to hire",
+    rank="Rank number (0-5)"
+)
 
-        conn.commit()
+async def hire(
+    interaction: discord.Interaction,
+    member: discord.Member,
+    rank: str
+):
 
-        for role_id in ROLE_IDS.values():
-
-            role = interaction.guild.get_role(
-                role_id
-            )
-
-            if role in member.roles:
-
-                await member.remove_roles(
-                    role
-                )
+    if rank not in VALID_RANKS:
 
         await interaction.response.send_message(
-            f"🔥 Fired {member.mention}"
+            "❌ Invalid rank. Use 0-5.",
+            ephemeral=True
         )
 
-        await self.update_roster(
-            interaction.channel
-        )
+        return
 
-    @discord.app_commands.command(
-        name="promote",
-        description="Promote employee"
+    roster = load_roster()
+
+    roster[str(member.id)] = {
+        "name": member.name,
+        "rank": rank
+    }
+
+    save_roster(roster)
+
+    embed = discord.Embed(
+        title="✅ User Hired",
+        color=discord.Color.green()
     )
-    async def promote(
-        self,
-        interaction: discord.Interaction,
-        member: discord.Member
-    ):
 
-        cursor.execute(
-            """
-            SELECT rank FROM roster
-            WHERE name=?
-            """,
-            (member.name,)
-        )
+    embed.add_field(
+        name="User",
+        value=member.mention,
+        inline=True
+    )
 
-        result = cursor.fetchone()
+    embed.add_field(
+        name="Rank",
+        value=f"{rank} - {RANK_NAMES[rank]}",
+        inline=True
+    )
 
-        if not result:
+    await interaction.response.send_message(
+        embed=embed
+    )
 
-            await interaction.response.send_message(
-                "❌ Employee not found."
-            )
+# =========================
+# FIRE USER
+# =========================
 
-            return
+@bot.tree.command(
+    name="fire",
+    description="Fire a user"
+)
 
-        current_rank = result[0]
+async def fire(
+    interaction: discord.Interaction,
+    member: discord.Member
+):
 
-        index = RANK_ORDER.index(
-            current_rank
-        )
+    roster = load_roster()
 
-        if index == 0:
-
-            await interaction.response.send_message(
-                "❌ Already highest rank."
-            )
-
-            return
-
-        new_rank = RANK_ORDER[
-            index - 1
-        ]
-
-        cursor.execute(
-            """
-            UPDATE roster
-            SET rank=?
-            WHERE name=?
-            """,
-            (
-                new_rank,
-                member.name
-            )
-        )
-
-        conn.commit()
-
-        old_role = interaction.guild.get_role(
-            ROLE_IDS[current_rank]
-        )
-
-        new_role = interaction.guild.get_role(
-            ROLE_IDS[new_rank]
-        )
-
-        if old_role in member.roles:
-
-            await member.remove_roles(
-                old_role
-            )
-
-        await member.add_roles(
-            new_role
-        )
+    if str(member.id) not in roster:
 
         await interaction.response.send_message(
-            f"⬆️ Promoted {member.mention} to {new_rank}"
+            "❌ User is not in the roster.",
+            ephemeral=True
         )
 
-        await self.update_roster(
-            interaction.channel
-        )
+        return
 
-    @discord.app_commands.command(
-        name="demote",
-        description="Demote employee"
+    del roster[str(member.id)]
+
+    save_roster(roster)
+
+    await interaction.response.send_message(
+        f"🔥 {member.mention} has been fired."
     )
-    async def demote(
-        self,
-        interaction: discord.Interaction,
-        member: discord.Member
-    ):
 
-        cursor.execute(
-            """
-            SELECT rank FROM roster
-            WHERE name=?
-            """,
-            (member.name,)
-        )
+# =========================
+# PROMOTE USER
+# =========================
 
-        result = cursor.fetchone()
+@bot.tree.command(
+    name="promote",
+    description="Promote a user"
+)
 
-        if not result:
+@app_commands.describe(
+    member="User to promote",
+    new_rank="New rank number (0-5)"
+)
 
-            await interaction.response.send_message(
-                "❌ Employee not found."
-            )
+async def promote(
+    interaction: discord.Interaction,
+    member: discord.Member,
+    new_rank: str
+):
 
-            return
-
-        current_rank = result[0]
-
-        index = RANK_ORDER.index(
-            current_rank
-        )
-
-        if index == len(RANK_ORDER) - 1:
-
-            await interaction.response.send_message(
-                "❌ Already lowest rank."
-            )
-
-            return
-
-        new_rank = RANK_ORDER[
-            index + 1
-        ]
-
-        cursor.execute(
-            """
-            UPDATE roster
-            SET rank=?
-            WHERE name=?
-            """,
-            (
-                new_rank,
-                member.name
-            )
-        )
-
-        conn.commit()
-
-        old_role = interaction.guild.get_role(
-            ROLE_IDS[current_rank]
-        )
-
-        new_role = interaction.guild.get_role(
-            ROLE_IDS[new_rank]
-        )
-
-        if old_role in member.roles:
-
-            await member.remove_roles(
-                old_role
-            )
-
-        await member.add_roles(
-            new_role
-        )
+    if new_rank not in VALID_RANKS:
 
         await interaction.response.send_message(
-            f"⬇️ Demoted {member.mention} to {new_rank}"
+            "❌ Invalid rank. Use 0-5.",
+            ephemeral=True
         )
 
-        await self.update_roster(
-            interaction.channel
+        return
+
+    roster = load_roster()
+
+    if str(member.id) not in roster:
+
+        await interaction.response.send_message(
+            "❌ User is not in the roster.",
+            ephemeral=True
         )
 
-async def setup(bot):
+        return
 
-    await bot.add_cog(
-        Roster(bot)
+    roster[str(member.id)]["rank"] = new_rank
+
+    save_roster(roster)
+
+    await interaction.response.send_message(
+        f"⬆️ {member.mention} promoted to "
+        f"{new_rank} - {RANK_NAMES[new_rank]}"
     )
+
+# =========================
+# VIEW ROSTER
+# =========================
+
+@bot.tree.command(
+    name="roster",
+    description="View the roster"
+)
+
+async def roster(interaction: discord.Interaction):
+
+    data = load_roster()
+
+    if not data:
+
+        await interaction.response.send_message(
+            "📋 Roster is empty."
+        )
+
+        return
+
+    embed = discord.Embed(
+        title="📋 Company Roster",
+        color=discord.Color.blue()
+    )
+
+    sorted_users = sorted(
+        data.items(),
+        key=lambda x: int(x[1]["rank"]),
+        reverse=True
+    )
+
+    description = ""
+
+    for user_id, info in sorted_users:
+
+        rank_num = info["rank"]
+        rank_name = RANK_NAMES.get(rank_num, "Unknown")
+
+        description += (
+            f"**{info['name']}** "
+            f"• Rank {rank_num} ({rank_name})\n"
+        )
+
+    embed.description = description
+
+    await interaction.response.send_message(
+        embed=embed
+    )
+
+# =========================
+# RUN BOT
+# =========================
+
+bot.run(TOKEN)
