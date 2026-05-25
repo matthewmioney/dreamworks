@@ -6,17 +6,32 @@ import os
 
 ROSTER_FILE = "roster.json"
 
+# =========================
+# RANKS
+# =========================
+
 RANK_NAMES = {
     "0": "Trainee",
-    "1": "Junior Staff",
-    "2": "Staff",
-    "3": "Senior Staff",
-    "4": "Supervisor",
+    "1": "Mechanic",
+    "2": "Sr Mechanic",
+    "3": "Supervisor",
+    "4": "Assistant Manager",
     "5": "Manager"
 }
 
 VALID_RANKS = list(RANK_NAMES.keys())
 
+# =========================
+# ROLE IDS
+# =========================
+
+ROLE_IDS = {
+    "5": 1211555736304357428
+}
+
+# =========================
+# LOAD / SAVE
+# =========================
 
 def load_roster():
 
@@ -32,6 +47,9 @@ def save_roster(data):
     with open(ROSTER_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
+# =========================
+# COG
+# =========================
 
 class Roster(commands.Cog):
 
@@ -103,6 +121,17 @@ class Roster(commands.Cog):
 
         save_roster(roster)
 
+        # GIVE ROLE
+
+        if rank in ROLE_IDS:
+
+            role = interaction.guild.get_role(
+                ROLE_IDS[rank]
+            )
+
+            if role:
+                await member.add_roles(role)
+
         embed = discord.Embed(
             title="✅ User Hired",
             color=discord.Color.green()
@@ -149,6 +178,19 @@ class Roster(commands.Cog):
             )
 
             return
+
+        old_rank = roster[str(member.id)]["rank"]
+
+        # REMOVE ROLE
+
+        if old_rank in ROLE_IDS:
+
+            role = interaction.guild.get_role(
+                ROLE_IDS[old_rank]
+            )
+
+            if role:
+                await member.remove_roles(role)
 
         del roster[str(member.id)]
 
@@ -199,6 +241,30 @@ class Roster(commands.Cog):
 
             return
 
+        old_rank = roster[str(member.id)]["rank"]
+
+        # REMOVE OLD ROLE
+
+        if old_rank in ROLE_IDS:
+
+            old_role = interaction.guild.get_role(
+                ROLE_IDS[old_rank]
+            )
+
+            if old_role:
+                await member.remove_roles(old_role)
+
+        # GIVE NEW ROLE
+
+        if new_rank in ROLE_IDS:
+
+            new_role = interaction.guild.get_role(
+                ROLE_IDS[new_rank]
+            )
+
+            if new_role:
+                await member.add_roles(new_role)
+
         roster[str(member.id)]["rank"] = new_rank
 
         save_roster(roster)
@@ -214,50 +280,84 @@ class Roster(commands.Cog):
 
     @app_commands.command(
         name="roster",
-        description="View the roster"
+        description="View the employee roster"
     )
 
     async def roster(self, interaction: discord.Interaction):
 
         data = load_roster()
 
-        if not data:
+        # ROLE ORDER
+        role_order = {
+            "5": "Manager",
+            "4": "Assistant Manager",
+            "3": "Supervisor",
+            "2": "Sr Mechanic",
+            "1": "Mechanic",
+            "0": "Trainee"
+        }
 
-            await interaction.response.send_message(
-                "📋 Roster is empty."
-            )
+        # ORGANIZE USERS
+        grouped = {
+            "5": [],
+            "4": [],
+            "3": [],
+            "2": [],
+            "1": [],
+            "0": []
+        }
 
-            return
+        for user_id, info in data.items():
+
+            rank = info["rank"]
+
+            if rank in grouped:
+                grouped[rank].append(info["name"])
+
+        total_employees = len(data)
 
         embed = discord.Embed(
-            title="📋 Company Roster",
-            color=discord.Color.blue()
+            title="👥 DreamWorks\nEmployee Roster",
+            color=discord.Color.dark_gray()
         )
 
-        sorted_users = sorted(
-            data.items(),
-            key=lambda x: int(x[1]["rank"]),
-            reverse=True
+        embed.description = (
+            f"## Total Employees: {total_employees}"
         )
 
-        description = ""
+        # ADD EACH ROLE SECTION
 
-        for user_id, info in sorted_users:
+        for rank in ["5", "4", "3", "2", "1", "0"]:
 
-            rank_num = info["rank"]
-            rank_name = RANK_NAMES.get(rank_num, "Unknown")
+            users = grouped[rank]
 
-            description += (
-                f"**{info['name']}** "
-                f"• Rank {rank_num} ({rank_name})\n"
+            role_name = role_order[rank]
+
+            count = len(users)
+
+            if users:
+
+                user_list = "\n".join(
+                    [f"• {u}" for u in users]
+                )
+
+            else:
+
+                user_list = "None"
+
+            embed.add_field(
+                name=f"{role_name} — {count}",
+                value=user_list,
+                inline=False
             )
-
-        embed.description = description
 
         await interaction.response.send_message(
             embed=embed
         )
 
+# =========================
+# SETUP
+# =========================
 
 async def setup(bot):
     await bot.add_cog(Roster(bot))
