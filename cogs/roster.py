@@ -115,7 +115,7 @@ class Roster(commands.Cog):
         roster = load_roster()
 
         roster[str(member.id)] = {
-            "name": member.name,
+            "name": member.display_name,
             "rank": rank
         }
 
@@ -139,7 +139,7 @@ class Roster(commands.Cog):
 
         embed.add_field(
             name="User",
-            value=member.mention,
+            value=member.display_name,
             inline=True
         )
 
@@ -197,7 +197,7 @@ class Roster(commands.Cog):
         save_roster(roster)
 
         await interaction.response.send_message(
-            f"🔥 {member.mention} has been fired."
+            f"🔥 {member.display_name} has been fired."
         )
 
     # =========================
@@ -209,26 +209,11 @@ class Roster(commands.Cog):
         description="Promote a user"
     )
 
-    @app_commands.describe(
-        member="User to promote",
-        new_rank="New rank number (0-5)"
-    )
-
     async def promote(
         self,
         interaction: discord.Interaction,
-        member: discord.Member,
-        new_rank: str
+        member: discord.Member
     ):
-
-        if new_rank not in VALID_RANKS:
-
-            await interaction.response.send_message(
-                "❌ Invalid rank. Use 0-5.",
-                ephemeral=True
-            )
-
-            return
 
         roster = load_roster()
 
@@ -241,7 +226,21 @@ class Roster(commands.Cog):
 
             return
 
-        old_rank = roster[str(member.id)]["rank"]
+        current_rank = int(
+            roster[str(member.id)]["rank"]
+        )
+
+        if current_rank >= 5:
+
+            await interaction.response.send_message(
+                "❌ User is already max rank.",
+                ephemeral=True
+            )
+
+            return
+
+        new_rank = str(current_rank + 1)
+        old_rank = str(current_rank)
 
         # REMOVE OLD ROLE
 
@@ -270,7 +269,80 @@ class Roster(commands.Cog):
         save_roster(roster)
 
         await interaction.response.send_message(
-            f"⬆️ {member.mention} promoted to "
+            f"⬆️ {member.display_name} promoted to "
+            f"{new_rank} - {RANK_NAMES[new_rank]}"
+        )
+
+    # =========================
+    # DEMOTE
+    # =========================
+
+    @app_commands.command(
+        name="demote",
+        description="Demote a user"
+    )
+
+    async def demote(
+        self,
+        interaction: discord.Interaction,
+        member: discord.Member
+    ):
+
+        roster = load_roster()
+
+        if str(member.id) not in roster:
+
+            await interaction.response.send_message(
+                "❌ User is not in the roster.",
+                ephemeral=True
+            )
+
+            return
+
+        current_rank = int(
+            roster[str(member.id)]["rank"]
+        )
+
+        if current_rank <= 0:
+
+            await interaction.response.send_message(
+                "❌ User is already lowest rank.",
+                ephemeral=True
+            )
+
+            return
+
+        new_rank = str(current_rank - 1)
+        old_rank = str(current_rank)
+
+        # REMOVE OLD ROLE
+
+        if old_rank in ROLE_IDS:
+
+            old_role = interaction.guild.get_role(
+                ROLE_IDS[old_rank]
+            )
+
+            if old_role:
+                await member.remove_roles(old_role)
+
+        # GIVE NEW ROLE
+
+        if new_rank in ROLE_IDS:
+
+            new_role = interaction.guild.get_role(
+                ROLE_IDS[new_rank]
+            )
+
+            if new_role:
+                await member.add_roles(new_role)
+
+        roster[str(member.id)]["rank"] = new_rank
+
+        save_roster(roster)
+
+        await interaction.response.send_message(
+            f"⬇️ {member.display_name} demoted to "
             f"{new_rank} - {RANK_NAMES[new_rank]}"
         )
 
@@ -287,7 +359,6 @@ class Roster(commands.Cog):
 
         data = load_roster()
 
-        # ROLE ORDER
         role_order = {
             "5": "Manager",
             "4": "Assistant Manager",
@@ -297,7 +368,6 @@ class Roster(commands.Cog):
             "0": "Trainee"
         }
 
-        # ORGANIZE USERS
         grouped = {
             "5": [],
             "4": [],
@@ -312,20 +382,25 @@ class Roster(commands.Cog):
             rank = info["rank"]
 
             if rank in grouped:
-                grouped[rank].append(user_id)
+                grouped[rank].append(info["name"])
 
         total_employees = len(data)
 
         embed = discord.Embed(
-            title="👥 DreamWorks\nTeam Roster",
+            title="# 👥 DREAMWORKS\n# TEAM ROSTER",
+            description=f"### Total Employees: {total_employees}\n\u200b",
             color=discord.Color.dark_gray()
         )
 
-        embed.description = (
-            f"## Total Employees: {total_employees}"
+        embed.set_footer(
+            text=(
+                "/hire [user] [rank] • "
+                "/fire [user] • "
+                "/promote [user] • "
+                "/demote [user] • "
+                "/roster"
+            )
         )
-
-        # ADD EACH ROLE SECTION
 
         for rank in ["5", "4", "3", "2", "1", "0"]:
 
@@ -338,7 +413,7 @@ class Roster(commands.Cog):
             if users:
 
                 user_list = "\n".join(
-                    [f"• <@{u}>" for u in users]
+                    [f"• {u}" for u in users]
                 )
 
             else:
