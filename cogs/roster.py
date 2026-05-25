@@ -11,7 +11,6 @@ cursor = conn.cursor()
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS roster (
     name TEXT,
-    code TEXT,
     rank TEXT
 )
 """)
@@ -62,8 +61,7 @@ def build_roster():
             for employee in employees:
 
                 text += (
-                    f"• {employee[0]} "
-                    f"[{employee[1]}]\n"
+                    f"• {employee[0]}\n"
                 )
 
         else:
@@ -133,33 +131,50 @@ class Roster(commands.Cog):
         self,
         interaction: discord.Interaction,
         member: discord.Member,
-        code: str
+        rank: str
     ):
+
+        valid_ranks = [
+            "Manager",
+            "Assistant Manager",
+            "Supervisor",
+            "Sr Mechanic",
+            "Mechanic",
+            "Trainee"
+        ]
+
+        if rank not in valid_ranks:
+
+            await interaction.response.send_message(
+                "❌ Invalid rank.",
+                ephemeral=True
+            )
+
+            return
 
         cursor.execute(
             """
             INSERT INTO roster
-            VALUES (?, ?, ?)
+            VALUES (?, ?)
             """,
             (
                 member.name,
-                code,
-                "Trainee"
+                rank
             )
         )
 
         conn.commit()
 
-        trainee_role = interaction.guild.get_role(
-            ROLE_IDS["Trainee"]
+        role = interaction.guild.get_role(
+            ROLE_IDS[rank]
         )
 
         await member.add_roles(
-            trainee_role
+            role
         )
 
         await interaction.response.send_message(
-            f"✅ Hired {member.mention}"
+            f"✅ Hired {member.mention} as {rank}"
         )
 
         await self.update_roster(
