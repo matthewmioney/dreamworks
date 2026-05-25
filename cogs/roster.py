@@ -17,14 +17,14 @@ CREATE TABLE IF NOT EXISTS roster (
 
 conn.commit()
 
-RANK_ORDER = [
-    "Manager",
-    "Assistant Manager",
-    "Supervisor",
-    "Sr Mechanic",
-    "Mechanic",
-    "Trainee"
-]
+RANK_ORDER = {
+    0: "Trainee",
+    1: "Mechanic",
+    2: "Sr Mechanic",
+    3: "Supervisor",
+    4: "Assistant Manager",
+    5: "Manager"
+}
 
 ROLE_IDS = {
     "Manager": 1211555736304357429,
