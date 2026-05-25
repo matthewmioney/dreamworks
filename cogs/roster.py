@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import sqlite3
 
+GUILD_ID = 1211555736283516938
+
 conn = sqlite3.connect(
     "database.db"
 )
@@ -107,13 +109,12 @@ class Roster(commands.Cog):
                 roster_text
             )
 
-    # =========================
-    # SETUP ROSTER
-    # =========================
-
     @discord.app_commands.command(
         name="setup_roster",
         description="Setup roster"
+    )
+    @discord.app_commands.guilds(
+        discord.Object(id=GUILD_ID)
     )
     async def setup_roster(
         self,
@@ -129,13 +130,12 @@ class Roster(commands.Cog):
             interaction.channel
         )
 
-    # =========================
-    # HIRE
-    # =========================
-
     @discord.app_commands.command(
         name="hire",
         description="Hire employee"
+    )
+    @discord.app_commands.guilds(
+        discord.Object(id=GUILD_ID)
     )
     async def hire(
         self,
@@ -174,13 +174,12 @@ class Roster(commands.Cog):
             interaction.channel
         )
 
-    # =========================
-    # FIRE
-    # =========================
-
     @discord.app_commands.command(
         name="fire",
         description="Fire employee"
+    )
+    @discord.app_commands.guilds(
+        discord.Object(id=GUILD_ID)
     )
     async def fire(
         self,
@@ -218,13 +217,12 @@ class Roster(commands.Cog):
             interaction.channel
         )
 
-    # =========================
-    # PROMOTE
-    # =========================
-
     @discord.app_commands.command(
         name="promote",
         description="Promote employee"
+    )
+    @discord.app_commands.guilds(
+        discord.Object(id=GUILD_ID)
     )
     async def promote(
         self,
@@ -308,13 +306,12 @@ class Roster(commands.Cog):
             interaction.channel
         )
 
-    # =========================
-    # DEMOTE
-    # =========================
-
     @discord.app_commands.command(
         name="demote",
         description="Demote employee"
+    )
+    @discord.app_commands.guilds(
+        discord.Object(id=GUILD_ID)
     )
     async def demote(
         self,
