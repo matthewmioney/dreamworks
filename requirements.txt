@@ -1,4 +1,0 @@
-flask
-discord.py
-python-dotenv
-gunicorn
