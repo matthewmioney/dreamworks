@@ -42,12 +42,24 @@ async def main():
             "cogs.loa"
         )
 
+        print(
+            "Loaded loa"
+        )
+
         await bot.load_extension(
             "cogs.leaderboard"
         )
 
+        print(
+            "Loaded leaderboard"
+        )
+
         await bot.load_extension(
             "cogs.roster"
+        )
+
+        print(
+            "Loaded roster"
         )
 
         await bot.start(TOKEN)
