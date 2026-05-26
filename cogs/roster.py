@@ -132,6 +132,20 @@ class Roster(commands.Cog):
         )
 
     @discord.app_commands.command(
+        name="roster",
+        description="Show roster"
+    )
+    async def roster(
+        self,
+        interaction: discord.Interaction
+    ):
+
+        await interaction.response.send_message(
+            build_roster(),
+            ephemeral=True
+        )
+
+    @discord.app_commands.command(
         name="hire",
         description="Hire employee"
     )
