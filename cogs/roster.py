@@ -46,16 +46,14 @@ ROLE_IDS = {
 }
 
 
-def build_roster(guild):
+def build_roster_embed(guild):
 
     total = 0
 
-    text = (
-        "# 👥 DREAMWORKS\n"
-        "# TEAM ROSTER\n\n"
+    embed = discord.Embed(
+        title="DreamWorks Team Roster",
+        color=discord.Color.dark_gray()
     )
-
-    roster_sections = ""
 
     for rank in RANK_ORDER:
 
@@ -68,9 +66,7 @@ def build_roster(guild):
 
         total += len(employees)
 
-        roster_sections += (
-            f"**{rank} — {len(employees)}**\n"
-        )
+        employee_text = ""
 
         if employees:
 
@@ -90,33 +86,33 @@ def build_roster(guild):
 
                     display_name = employee[1]
 
-                roster_sections += (
+                employee_text += (
                     f"• {display_name}\n"
                 )
 
         else:
 
-            roster_sections += (
-                "None\n"
-            )
+            employee_text = "None"
 
-        roster_sections += "\n"
+        embed.add_field(
+            name=f"{rank} — {len(employees)}",
+            value=employee_text,
+            inline=False
+        )
 
-    text += (
-        f"**Total Employees: {total}**\n\n"
+    embed.description = (
+        f"**Total Employees: {total}**"
     )
 
-    text += roster_sections
-
-    text += (
-        "/hire [user] [rank] • "
-        "/fire [user] • "
-        "/promote [user] • "
-        "/demote [user] • "
-        "/roster"
+    embed.set_footer(
+        text="/hire [user] [rank] • "
+             "/fire [user] • "
+             "/promote [user] • "
+             "/demote [user] • "
+             "/roster"
     )
 
-    return text
+    return embed
 
 
 class Roster(commands.Cog):
@@ -132,20 +128,20 @@ class Roster(commands.Cog):
         channel
     ):
 
-        roster_text = build_roster(
+        roster_embed = build_roster_embed(
             channel.guild
         )
 
         if self.roster_message:
 
             await self.roster_message.edit(
-                content=roster_text
+                embed=roster_embed
             )
 
         else:
 
             self.roster_message = await channel.send(
-                roster_text
+                embed=roster_embed
             )
 
     @discord.app_commands.command(
@@ -176,7 +172,7 @@ class Roster(commands.Cog):
     ):
 
         await interaction.response.send_message(
-            build_roster(
+            embed=build_roster_embed(
                 interaction.guild
             )
         )
