@@ -98,10 +98,12 @@ def build_roster_embed(guild):
 
             roster_text += "None\n"
 
+        roster_text += "\n"
+
     embed.description = (
         "\n"
         f"**Total Employees: {total}**\n\n\n"
-        f"{roster_text}\n"
+        f"{roster_text}"
     )
 
     embed.set_footer(
