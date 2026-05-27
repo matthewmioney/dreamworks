@@ -55,6 +55,8 @@ def build_roster_embed(guild):
         color=discord.Color.dark_gray()
     )
 
+    roster_text = ""
+
     for rank in RANK_ORDER:
 
         cursor.execute(
@@ -66,7 +68,9 @@ def build_roster_embed(guild):
 
         total += len(employees)
 
-        employee_text = ""
+        roster_text += (
+            f"**{rank} — {len(employees)}**\n"
+        )
 
         if employees:
 
@@ -86,22 +90,19 @@ def build_roster_embed(guild):
 
                     display_name = employee[1]
 
-                employee_text += (
+                roster_text += (
                     f"• {display_name}\n"
                 )
 
         else:
 
-            employee_text = "None"
+            roster_text += "None\n"
 
-        embed.add_field(
-            name=f"{rank} — {len(employees)}",
-            value=employee_text,
-            inline=False
-        )
+        roster_text += "\n"
 
     embed.description = (
-        f"**Total Employees: {total}**"
+        f"**Total Employees: {total}**\n\n"
+        f"{roster_text}"
     )
 
     embed.set_footer(
