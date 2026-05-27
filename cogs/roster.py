@@ -161,8 +161,7 @@ class Roster(commands.Cog):
         await interaction.response.send_message(
             build_roster(
                 interaction.guild
-            ),
-            ephemeral=True
+            )
         )
 
     @discord.app_commands.command(
