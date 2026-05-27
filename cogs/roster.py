@@ -103,15 +103,21 @@ def build_roster_embed(guild):
     embed.description = (
         "\n"
         f"**Total Employees: {total}**\n\n\n"
-        f"{roster_text}"
+        f"{roster_text}\n"
     )
 
     embed.set_footer(
-        text="/hire [user] [rank] • "
-             "/fire [user] • "
-             "/promote [user] • "
-             "/demote [user] • "
-             "/roster"
+        text=" "
+    )
+
+    embed.add_field(
+        name="",
+        value="/hire [user] [rank] • "
+              "/fire [user] • "
+              "/promote [user] • "
+              "/demote [user] • "
+              "/roster",
+        inline=False
     )
 
     return embed
