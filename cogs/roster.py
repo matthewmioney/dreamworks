@@ -48,9 +48,14 @@ ROLE_IDS = {
 
 def build_roster(guild):
 
-    text = "# 👥 DreamWorks Team Roster\n\n"
-
     total = 0
+
+    text = (
+        "# 👥 DREAMWORKS\n"
+        "# TEAM ROSTER\n\n"
+    )
+
+    roster_sections = ""
 
     for rank in RANK_ORDER:
 
@@ -63,7 +68,7 @@ def build_roster(guild):
 
         total += len(employees)
 
-        text += (
+        roster_sections += (
             f"**{rank} — {len(employees)}**\n"
         )
 
@@ -85,18 +90,30 @@ def build_roster(guild):
 
                     display_name = employee[1]
 
-                text += (
+                roster_sections += (
                     f"• {display_name}\n"
                 )
 
         else:
 
-            text += "None\n"
+            roster_sections += (
+                "None\n"
+            )
 
-        text += "\n"
+        roster_sections += "\n"
 
     text += (
-        f"**Total Employees: {total}**"
+        f"**Total Employees: {total}**\n\n"
+    )
+
+    text += roster_sections
+
+    text += (
+        "/hire [user] [rank] • "
+        "/fire [user] • "
+        "/promote [user] • "
+        "/demote [user] • "
+        "/roster"
     )
 
     return text
