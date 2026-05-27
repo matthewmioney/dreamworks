@@ -98,8 +98,6 @@ def build_roster_embed(guild):
 
             roster_text += "None\n"
 
-        roster_text += "\u200b\n"
-
     embed.description = (
         "\n"
         f"**Total Employees: {total}**\n\n\n"
