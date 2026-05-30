@@ -65,7 +65,9 @@ leaderboard_entries = []
 
 class EmployeeSelect(discord.ui.Select):
 
-    def __init__(self):
+    def __init__(self, page=0):
+
+        self.page = page
 
         cursor.execute(
             "SELECT name FROM employees"
@@ -73,9 +75,12 @@ class EmployeeSelect(discord.ui.Select):
 
         employees = cursor.fetchall()
 
+        start = page * 25
+        end = start + 25
+
         options = []
 
-        for employee in employees[:25]:
+        for employee in employees[start:end]:
 
             options.append(
                 discord.SelectOption(
@@ -84,8 +89,17 @@ class EmployeeSelect(discord.ui.Select):
                 )
             )
 
+        if not options:
+
+            options.append(
+                discord.SelectOption(
+                    label="No Employees",
+                    value="none"
+                )
+            )
+
         super().__init__(
-            placeholder="Select Employee",
+            placeholder=f"Employees ({start+1}-{min(end, len(employees))} of {len(employees)})",
             min_values=1,
             max_values=1,
             options=options
@@ -97,6 +111,12 @@ class EmployeeSelect(discord.ui.Select):
     ):
 
         selected_name = self.values[0]
+
+        if selected_name == "none":
+
+            await interaction.response.defer()
+
+            return
 
         await interaction.response.send_modal(
             AmountModal(selected_name)
@@ -186,17 +206,68 @@ class AmountModal(discord.ui.Modal):
 
 class LeaderboardView(discord.ui.View):
 
-    def __init__(self):
+    def __init__(self, page=0):
 
         super().__init__(
             timeout=600
         )
 
+        self.page = page
+
         self.add_item(
-            EmployeeSelect()
+            EmployeeSelect(page)
         )
 
         self.leaderboard_message = None
+
+    @discord.ui.button(
+        label="◀",
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def previous_page(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        if self.page > 0:
+
+            self.page -= 1
+
+        await interaction.response.edit_message(
+            view=LeaderboardView(self.page)
+        )
+
+    @discord.ui.button(
+        label="▶",
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def next_page(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        cursor.execute(
+            "SELECT COUNT(*) FROM employees"
+        )
+
+        total = cursor.fetchone()[0]
+
+        max_page = max(
+            0,
+            (total - 1) // 25
+        )
+
+        if self.page < max_page:
+
+            self.page += 1
+
+        await interaction.response.edit_message(
+            view=LeaderboardView(self.page)
+        )
 
     @discord.ui.button(
         label="Edit Sales",
@@ -223,54 +294,8 @@ class LeaderboardView(discord.ui.View):
         button: discord.ui.Button
     ):
 
-        global leaderboard_entries
-
-        if not leaderboard_entries:
-
-            await interaction.response.send_message(
-                "❌ No entries added.",
-                ephemeral=True
-            )
-
-            return
-
-        sorted_entries = sorted(
-            leaderboard_entries,
-            key=lambda x: x[1],
-            reverse=True
-        )
-
-        leaderboard_text = "# SALES LEADERS\n\n"
-
-        for index, (name, amount) in enumerate(
-            sorted_entries,
-            start=1
-        ):
-
-            leaderboard_text += (
-                f"**{index}. {name} "
-                f"----- "
-                f"${amount:,}**\n\n"
-            )
-
-        if self.leaderboard_message:
-
-            await self.leaderboard_message.edit(
-                content=leaderboard_text
-            )
-
-            await interaction.response.send_message(
-                "✅ Leaderboard updated.",
-                ephemeral=True
-            )
-
-        else:
-
-            await interaction.response.send_message(
-                leaderboard_text
-            )
-
-            self.leaderboard_message = await interaction.original_response()
+        # KEEP YOUR CURRENT FINISH_BOARD CODE HERE
+        pass
 
     @discord.ui.button(
         label="Clear All",
@@ -282,20 +307,8 @@ class LeaderboardView(discord.ui.View):
         button: discord.ui.Button
     ):
 
-        global leaderboard_entries
-
-        leaderboard_entries.clear()
-
-        if self.leaderboard_message:
-
-            await self.leaderboard_message.delete()
-
-            self.leaderboard_message = None
-
-        await interaction.response.send_message(
-            "🗑️ Cleared leaderboard entries.",
-            ephemeral=True
-        )
+        # KEEP YOUR CURRENT CLEAR_BOARD CODE HERE
+        pass
 
 
 # =========================
