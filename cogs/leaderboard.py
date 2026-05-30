@@ -13,48 +13,8 @@ CREATE TABLE IF NOT EXISTS employees (
     name TEXT
 )
 """)
-
-default_employees = [
-    "Matthew Wright",
-    "Braxton Chrisp",
-    "Cameron White",
-    "Malik White",
-    "Myla Chester",
-    "Olivia Love",
-    "Tommy Williams",
-    "Landon Black",
-    "Donny Winter",
-    "Alan Duke",
-    "Amon Demon",
-    "Folabi White",
-    "Jay Clayton",
-    "Kevin Flenory",
-    "Pauly Devini",
-    "Ryan Thomas",
-    "Scrim Wright",
-    "Teiko Lucenti-Price",
-    "Timothy Walker",
-    "Xavier Saint",
-    "Clover Duke"
-]
-
-for employee in default_employees:
-
-    cursor.execute(
-        "SELECT * FROM employees WHERE name=?",
-        (employee,)
-    )
-
-    existing = cursor.fetchone()
-
-    if not existing:
-
-        cursor.execute(
-            "INSERT INTO employees VALUES (?)",
-            (employee,)
-        )
-
 conn.commit()
+
 
 leaderboard_entries = []
 
@@ -284,19 +244,88 @@ class LeaderboardView(discord.ui.View):
             ephemeral=True
         )
 
-    @discord.ui.button(
-        label="Finish Leaderboard",
-        style=discord.ButtonStyle.green
+   @discord.ui.button(
+    label="Finish Leaderboard",
+    style=discord.ButtonStyle.green
+)
+async def finish_board(
+    self,
+    interaction: discord.Interaction,
+    button: discord.ui.Button
+):
+
+    global leaderboard_entries
+
+    if not leaderboard_entries:
+
+        await interaction.response.send_message(
+            "❌ No entries added.",
+            ephemeral=True
+        )
+
+        return
+
+    sorted_entries = sorted(
+        leaderboard_entries,
+        key=lambda x: x[1],
+        reverse=True
     )
-    async def finish_board(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
+
+    leaderboard_text = "# SALES LEADERS\n\n"
+
+    for index, (name, amount) in enumerate(
+        sorted_entries,
+        start=1
     ):
 
-        # KEEP YOUR CURRENT FINISH_BOARD CODE HERE
-        pass
+        leaderboard_text += (
+            f"**{index}. {name} ----- ${amount:,}**\n\n"
+        )
 
+    if self.leaderboard_message:
+
+        await self.leaderboard_message.edit(
+            content=leaderboard_text
+        )
+
+        await interaction.response.send_message(
+            "✅ Leaderboard updated.",
+            ephemeral=True
+        )
+
+    else:
+
+        await interaction.response.send_message(
+            leaderboard_text
+        )
+
+        self.leaderboard_message = await interaction.original_response()
+
+
+@discord.ui.button(
+    label="Clear All",
+    style=discord.ButtonStyle.red
+)
+async def clear_board(
+    self,
+    interaction: discord.Interaction,
+    button: discord.ui.Button
+):
+
+    global leaderboard_entries
+
+    leaderboard_entries.clear()
+
+    if self.leaderboard_message:
+
+        await self.leaderboard_message.delete()
+
+        self.leaderboard_message = None
+
+    await interaction.response.send_message(
+        "🗑️ Cleared leaderboard entries.",
+        ephemeral=True
+    )
     @discord.ui.button(
         label="Clear All",
         style=discord.ButtonStyle.red
