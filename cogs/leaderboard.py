@@ -243,16 +243,15 @@ class LeaderboardView(discord.ui.View):
             "Select the employee again from the dropdown to edit sales.",
             ephemeral=True
         )
-
-   @discord.ui.button(
-    label="Finish Leaderboard",
-    style=discord.ButtonStyle.green
-)
-async def finish_board(
-    self,
-    interaction: discord.Interaction,
-    button: discord.ui.Button
-):
+    @discord.ui.button(
+        label="Finish Leaderboard",
+        style=discord.ButtonStyle.green
+    )
+    async def finish_board(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
 
     global leaderboard_entries
 
@@ -301,16 +300,15 @@ async def finish_board(
 
         self.leaderboard_message = await interaction.original_response()
 
-
-@discord.ui.button(
-    label="Clear All",
-    style=discord.ButtonStyle.red
-)
-async def clear_board(
-    self,
-    interaction: discord.Interaction,
-    button: discord.ui.Button
-):
+    @discord.ui.button(
+        label="Clear All",
+        style=discord.ButtonStyle.red
+    )
+    async def clear_board(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
 
     global leaderboard_entries
 
